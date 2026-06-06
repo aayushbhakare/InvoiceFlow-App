@@ -1,4 +1,5 @@
-
+from django.db import models
+from django.contrib.auth.models import User
 
 from django.db import models
 
@@ -27,6 +28,11 @@ class Invoice(models.Model):
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     status = models.CharField(max_length=20, choices=status_choices, default='Draft')
     discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    client_state = models.CharField(max_length=50, blank=True, null=True)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=18.00)
+    client_address = models.TextField(null=True, blank=True)
+    bank_details = models.TextField(null=True, blank=True)
+    notes = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"Invoice {self.invoice_number} - {self.client_name}"
@@ -43,3 +49,26 @@ class LineItem(models.Model):
             return f"LineItem for {self.invoice.invoice_number} - {self.services.name}"
         else:
             return f"LineItem for {self.invoice.invoice_number} - [No Service Attached]"
+
+
+
+class Profile(models.Model):
+    ENTITY_CHOICES = (
+        ('INDIVIDUAL', 'Individual / Freelancer'),
+        ('COMPANY', 'Registered Company'),
+    )
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    name = models.CharField(max_length=255, default="") 
+    display_name = models.CharField(max_length=255, default="") 
+    entity_type = models.CharField(max_length=20, choices=ENTITY_CHOICES, default='INDIVIDUAL')
+    phone_number = models.CharField(max_length=15, default="") 
+    bank_name = models.CharField(max_length=255, default="")
+    account_number = models.CharField(max_length=50, default="")
+    ifsc_code = models.CharField(max_length=20, default="")
+    upi_id = models.CharField(max_length=100, blank=True, null=True)
+    company_name = models.CharField(max_length=255, blank=True, null=True) 
+    gstin = models.CharField(max_length=50, blank=True, null=True) 
+
+    def __str__(self):
+        return f"{self.display_name} ({self.get_entity_type_display()})"

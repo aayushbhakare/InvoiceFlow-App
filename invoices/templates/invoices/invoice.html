@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice {{ invoice.invoice_number }}</title>
+    <style>
+        /* Base Typography & Canvas */
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #2b3445;
+            line-height: 1.5;
+            margin: 0;
+            padding: 30px;
+            font-size: 13px;
+        }
+
+        /* Brand Accent Colors */
+        :root {
+            --primary: #4F46E5; /* Modern Indigo */
+            --primary-light: #EEF2FF;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+        }
+
+        /* Layout Tables (WeasyPrint Safe) */
+        table { width: 100%; border-collapse: collapse; }
+        td { vertical-align: top; }
+
+        /* Document Header */
+        .header-banner {
+            margin-bottom: 40px;
+            border-bottom: 2px solid #4F46E5;
+            padding-bottom: 20px;
+        }
+        .brand-name {
+            font-size: 28px;
+            font-weight: 800;
+            color: #4F46E5;
+            letter-spacing: -0.5px;
+            margin: 0;
+        }
+        .invoice-label {
+            font-size: 14px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: right;
+            margin-bottom: 5px;
+        }
+        .invoice-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #111827;
+            text-align: right;
+        }
+
+        /* Modern Status Badge */
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: right;
+            float: right;
+            margin-top: 10px;
+        }
+        .badge-paid { background-color: #d1fae5; color: #065f46; }
+        .badge-unpaid { background-color: #fee2e2; color: #991b1b; }
+
+        /* Meta Data Grid (Dates, etc) */
+        .meta-box {
+            background-color: #f9fafb;
+            border: 1px solid #f3f4f6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 40px;
+        }
+        .meta-label { font-size: 11px; color: #6b7280; text-transform: uppercase; margin-bottom: 4px; }
+        .meta-value { font-size: 14px; font-weight: 600; color: #111827; }
+
+        /* Address Section */
+        .address-section { margin-bottom: 40px; }
+        .address-title { font-size: 11px; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; }
+        .address-name { font-size: 15px; font-weight: bold; color: #111827; margin-bottom: 4px; }
+        .address-text { color: #4b5563; line-height: 1.6; }
+
+        /* Elevated Items Table */
+        .items-table { margin-bottom: 30px; }
+        .items-table th {
+            background-color: #4F46E5;
+            color: white;
+            padding: 12px 15px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+        }
+        .items-table .align-right { text-align: right; }
+        .items-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #374151;
+        }
+        .items-table tr:nth-child(even) { background-color: #f9fafb; } /* Subtle zebra striping */
+
+        /* Totals Block */
+        .totals-wrapper { width: 100%; }
+        .totals-table { width: 45%; float: right; }
+        .totals-table td { padding: 8px 15px; }
+        .totals-label { color: #4b5563; text-align: left; }
+        
+        .grand-total-row {
+            background-color: #EEF2FF;
+            border-top: 2px solid #4F46E5;
+        }
+        .grand-total-row td {
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #4F46E5;
+        }
+
+        .clearfix::after { content: ""; clear: both; display: table; }
+
+        /* Footer */
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .footer-title { font-weight: bold; color: #111827; margin-bottom: 5px; text-transform: uppercase; font-size: 11px;}
+    </style>
+</head>
+<body>
+
+    <table class="header-banner">
+        <tr>
+            <td>
+                <div class="brand-name">InvoiceFlow</div>
+            </td>
+            <td>
+                <div class="invoice-label">Invoice</div>
+                <div class="invoice-number">#{{ invoice.invoice_number }}</div>
+                <div class="badge {% if invoice.status == 'PAID' %}badge-paid{% else %}badge-unpaid{% endif %}">
+                    {{ invoice.status }}
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <table class="address-section">
+        <tr>
+            <td style="width: 50%; padding-right: 20px;">
+                <div class="address-title">Billed From</div>
+                <div class="address-name">InvoiceFlow Solutions</div>
+                <div class="address-text">
+                    Office 402, IT Park<br>
+                    Mumbai, Maharashtra 400070<br>
+                    GSTIN: 27AABCI9603R1ZX
+                </div>
+            </td>
+            <td style="width: 50%; padding-left: 20px;">
+                <div class="address-title">Billed To</div>
+                <div class="address-name">{{ invoice.client_name }}</div>
+                <div class="address-text">
+                    {% if invoice.client_address %}{{ invoice.client_address|linebreaksbr }}<br>{% endif %}
+                    State: {{ invoice.client_state }}
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <table class="meta-box">
+        <tr>
+            <td style="width: 50%;">
+                <div class="meta-label">Issue Date</div>
+                <div class="meta-value">{{ invoice.issue_date }}</div>
+            </td>
+            <td style="width: 50%;">
+                <div class="meta-label">Payment Due By</div>
+                <div class="meta-value">{{ invoice.due_date }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Service Description</th>
+                <th>Rate</th>
+                <th>Hours</th>
+                <th class="align-right">Line Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in line_items %}
+            <tr>
+                <td style="font-weight: 500;">{{ item.service_name }}</td>
+                <td>${{ item.service_rate }}</td>
+                <td>{{ item.total_hours }}</td>
+                <td class="align-right">${{ item.line_total }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals-wrapper clearfix">
+        <table class="totals-table">
+            <tr>
+                <td class="totals-label">Subtotal</td>
+                <td class="align-right">${{ invoice.subtotal }}</td>
+            </tr>
+            
+            {% if invoice.discount_percentage > 0 %}
+            <tr>
+                <td class="totals-label">Discount ({{ invoice.discount_percentage }}%)</td>
+                <td class="align-right">-${{ invoice.discount_amount }}</td>
+            </tr>
+            <tr>
+                <td class="totals-label">Taxable Amount</td>
+                <td class="align-right">${{ invoice.taxable_amount }}</td>
+            </tr>
+            {% endif %}
+
+            {% if invoice.cgst > 0 or invoice.sgst > 0 %}
+            <tr>
+                <td class="totals-label">CGST (9%)</td>
+                <td class="align-right">${{ invoice.cgst }}</td>
+            </tr>
+            <tr>
+                <td class="totals-label">SGST (9%)</td>
+                <td class="align-right">${{ invoice.sgst }}</td>
+            </tr>
+            {% endif %}
+
+            {% if invoice.igst > 0 %}
+            <tr>
+                <td class="totals-label">IGST ({{ invoice.tax_rate }}%)</td>
+                <td class="align-right">${{ invoice.igst }}</td>
+            </tr>
+            {% endif %}
+
+            <tr class="grand-total-row">
+                <td>Total Due</td>
+                <td class="align-right">${{ invoice.total_amount }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        {% if invoice.bank_details %}
+            <div class="footer-title">Payment Instructions</div>
+            <div style="margin-bottom: 12px; color: #4b5563;">
+                {{ invoice.bank_details|linebreaksbr }}
+            </div>
+        {% endif %}
+
+        {% if invoice.notes %}
+            <span style="font-style: italic; display: inline-block;">
+                {{ invoice.notes }}
+            </span>
+        {% endif %}
+    </div>
+
+</body>
+</html>
