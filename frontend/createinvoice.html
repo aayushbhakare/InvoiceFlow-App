@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>New Invoice — InvoiceFlow</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="createinvoice.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo"><span class="logo-dot"></span> InvoiceFlow</div>
+    <div class="breadcrumb"><i class="ti ti-chevron-right"></i><span>New Invoice</span></div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn-primary" onclick="saveInvoice()" style="margin:0; padding: 8px 16px;"><i class="ti ti-send"></i> Save & Send</button>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-header">
+    <div class="page-title">New Invoice</div>
+    <div class="page-sub">Create and send a professional invoice to your client</div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="section">
+        <div class="section-title">Invoice details</div>
+        <div class="row row-2">
+          <div class="field"><label>Status</label><select id="status"><option value="draft">Draft</option><option value="pending" selected>Pending</option></select></div>
+        </div>
+        <div class="row row-2">
+          <div class="field"><label>Issue date</label><input type="date" id="issue-date" onchange="updateSummary()" /></div>
+          <div class="field"><label>Due date</label><input type="date" id="due-date" onchange="updateSummary()" /></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Bill to</div>
+        <div class="field">
+          <label>Select client</label>
+          <select id="client-select" onchange="loadClient()">
+            <option value="">— Loading clients... —</option>
+          </select>
+        </div>
+        <div class="client-preview" id="client-preview">
+          <div class="cp-name" id="cp-name"></div>
+          <div class="cp-detail" id="cp-detail"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Services / Line items</div>
+        <div class="services-head"><span>Service</span><span style="text-align:right">Qty</span><span style="text-align:right">Amount</span><span></span></div>
+        <div id="service-rows"></div>
+        <button class="add-row-btn" onclick="addRow()"><i class="ti ti-plus"></i> Add service</button>
+        
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px; border-top:1px solid var(--border); padding-top:10px;">
+          <label style="margin-top:8px">Discount %</label>
+          <input type="number" id="discount-val" value="0" oninput="recalc()" style="width:80px; text-align:right" />
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Tax & Notes</div>
+        <div class="row row-2">
+          <div class="field">
+            <label>GST rate</label>
+            <select id="gst-rate" onchange="recalc()">
+              <option value="0">0%</option>
+              <option value="18" selected>18%</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>Notes / Payment instructions</label><textarea id="notes"></textarea></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="summary-card">
+        <div class="section-title">Invoice summary</div>
+        <div class="sum-row"><span class="sum-label">Subtotal</span><span id="s-sub">₹0</span></div>
+        <div class="sum-row" style="color:var(--teal-dark)"><span class="sum-label">Discount</span><span id="s-discount">₹0</span></div>
+        <div class="sum-row"><span class="sum-label">GST</span><span id="s-gst">₹0</span></div>
+        
+        <div class="sum-indent" id="cgst-row" style="display:none"><span>CGST 9%</span><span id="s-cgst">₹0</span></div>
+        <div class="sum-indent" id="sgst-row" style="display:none"><span>SGST 9%</span><span id="s-sgst">₹0</span></div>
+        <div class="sum-indent" id="igst-row" style="display:none"><span>IGST 18%</span><span id="s-igst">₹0</span></div>
+
+        <div class="total-block"><span>Total due</span><span id="s-total">₹0</span></div>
+        <button class="btn-primary" onclick="saveInvoice()"><i class="ti ti-check"></i> Save Invoice</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="createinvoice.js"></script>
+</body>
+</html>

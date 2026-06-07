@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InvoiceFlow — Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+ 
+<div class="notify" id="notify"></div>
+ 
+<div class="topbar">
+  <div style="display:flex; align-items:center; gap:20px;">
+    <div class="logo" onclick="showPage('dashboard', document.querySelectorAll('.nav-btn')[0])" style="cursor:pointer;">
+      <i class="ti ti-file-invoice"></i> InvoiceFlow
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i>Dashboard</button>
+      <button class="nav-btn" onclick="showPage('invoices',this)"><i class="ti ti-file-text"></i>Invoices</button>
+      <button class="nav-btn" onclick="showPage('clients',this)"><i class="ti ti-users"></i>Clients</button>
+      <button class="nav-btn" onclick="showPage('reports',this)"><i class="ti ti-chart-bar"></i>Reports</button>
+    </nav>
+  </div>
+
+  <div class="topbar-right" style="display:flex; align-items:center; gap:12px;">
+    <button class="btn btn-primary" onclick="openModal('invoice')">
+      <i class="ti ti-plus" style="font-size:12px"></i>New invoice
+    </button>
+    <button class="icon-btn"><i class="ti ti-bell"></i></button>
+    
+    <div class="profile-menu-wrap" style="position: relative;">
+      <div class="avatar" onclick="toggleProfileMenu()" style="cursor:pointer; display:flex; align-items:center; justify-content:center; background:#eee; width:32px; height:32px; border-radius:50%; font-size:12px; font-weight:600;">AVB</div>
+      <div class="profile-dropdown" id="profile-dropdown" style="display:none; position:absolute; top:40px; right:0; background:white; border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); width:180px; z-index:1000; padding:8px 0;">
+        <div style="padding:8px 16px; font-size:13px;">
+          <div style="font-weight: 500;">Aayush Bhakare</div>
+          <div style="font-size: 11px; color: var(--gray-6);">aayush@example.com</div>
+        </div>
+        <div style="height:1px; background:#eee; margin:4px 0;"></div>
+        <button class="dropdown-item" style="width:100%; padding:8px 16px; border:none; background:transparent; text-align:left; cursor:pointer; font-size:13px;" onclick="toast('Settings clicked')"><i class="ti ti-settings"></i> Settings</button>
+        <button class="dropdown-item" style="width:100%; padding:8px 16px; border:none; background:transparent; text-align:left; cursor:pointer; font-size:13px; color:var(--danger);" onclick="logout()"><i class="ti ti-logout"></i> Logout</button>
+      </div>
+    </div>
+  </div>
+</div>
+  
+  
+ 
+<div class="page active" id="page-dashboard">
+  <div class="page-header">
+    <span class="page-title">Dashboard</span>
+    <span style="font-size:11px;color:var(--gray-6)">June 2026</span>
+  </div>
+ 
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Total billed</div>
+      <div class="metric-val">₹2.4L</div>
+      <div class="metric-sub up"><i class="ti ti-trending-up" style="font-size:11px"></i> +18% vs last month</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Collected</div>
+      <div class="metric-val">₹1.8L</div>
+      <div class="metric-sub up">75% collection rate</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Outstanding</div>
+      <div class="metric-val">₹60K</div>
+      <div class="metric-sub warn"><i class="ti ti-clock" style="font-size:11px"></i> 4 pending</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Overdue</div>
+      <div class="metric-val">₹22K</div>
+      <div class="metric-sub danger"><i class="ti ti-alert-triangle" style="font-size:11px"></i> 2 invoices</div>
+    </div>
+  </div>
+ 
+  <div class="two-col">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Recent invoices</span>
+        <button class="btn" onclick="showPage('invoices',document.querySelectorAll('.nav-btn')[1])">View all</button>
+      </div>
+      <table>
+        <thead><tr>
+          <th style="width:38%">Client</th>
+          <th style="width:22%">Amount</th>
+          <th style="width:20%">Status</th>
+          <th style="width:20%">Due</th>
+        </tr></thead>
+        <tbody>
+          <tr onclick="openInvoiceDetail('INV-041','Mehta Textiles','₹45,000','pending','Jun 5')">
+            <td>Mehta Textiles</td><td>₹45,000</td>
+            <td><span class="badge b-pending">Pending</span></td><td>Jun 5</td>
+          </tr>
+          <tr onclick="openInvoiceDetail('INV-040','Sharma Builders','₹1,20,000','overdue','May 28')">
+            <td>Sharma Builders</td><td>₹1,20,000</td>
+            <td><span class="badge b-overdue">Overdue</span></td><td>May 28</td>
+          </tr>
+          <tr onclick="openInvoiceDetail('INV-039','Patel Pharma','₹78,500','paid','May 20')">
+            <td>Patel Pharma</td><td>₹78,500</td>
+            <td><span class="badge b-paid">Paid</span></td><td>May 20</td>
+          </tr>
+          <tr onclick="openInvoiceDetail('INV-038','Reddy Farms','₹15,200','draft','Jun 12')">
+            <td>Reddy Farms</td><td>₹15,200</td>
+            <td><span class="badge b-draft">Draft</span></td><td>Jun 12</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+ 
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Monthly billing</span>
+        <button class="btn" onclick="showPage('reports',document.querySelectorAll('.nav-btn')[3])">Full report</button>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="dash-chart"></canvas>
+      </div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>Collected</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#9FE1CB"></div>Billed</div>
+      </div>
+    </div>
+  </div>
+ 
+  <div class="card">
+    <div class="card-head"><span class="card-title">Collection progress</span></div>
+    <div style="padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+          <span>Mehta Textiles</span><span class="warn">₹45K pending</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+          <span>Patel Pharma</span><span class="up">₹78.5K paid</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+          <span>Sharma Builders</span><span class="danger">₹1.2L overdue</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:0%;background:var(--danger-txt)"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+          <span>Joshi Exports</span><span class="up">₹55K paid</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<div class="page" id="page-invoices">
+  <div class="page-header">
+    <span class="page-title">Invoices</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn"><i class="ti ti-download" style="font-size:12px"></i>Export</button>
+      <button class="btn btn-primary" onclick="openModal('invoice')">
+        <i class="ti ti-plus" style="font-size:12px"></i>New invoice
+      </button>
+    </div>
+  </div>
+ 
+  <div class="search-row">
+    <input id="inv-search" placeholder="Search by client or invoice number…" oninput="filterInvoices()">
+    <select id="inv-status" onchange="filterInvoices()">
+      <option value="">All statuses</option>
+      <option value="paid">Paid</option>
+      <option value="pending">Pending</option>
+      <option value="overdue">Overdue</option>
+      <option value="draft">Draft</option>
+    </select>
+    <select id="inv-sort" onchange="filterInvoices()">
+      <option value="date-desc">Newest first</option>
+      <option value="date-asc">Oldest first</option>
+      <option value="amount-desc">Highest amount</option>
+      <option value="amount-asc">Lowest amount</option>
+    </select>
+  </div>
+ 
+  <div class="card">
+    <table>
+      <thead><tr>
+        <th style="width:14%">Invoice #</th>
+        <th style="width:22%">Client</th>
+        <th style="width:14%">Amount</th>
+        <th style="width:12%">Issued</th>
+        <th style="width:12%">Due</th>
+        <th style="width:12%">Status</th>
+        <th style="width:14%">Actions</th>
+      </tr></thead>
+      <tbody id="inv-tbody"></tbody>
+    </table>
+  </div>
+</div>
+ 
+<div class="page" id="page-clients">
+  <div class="page-header">
+    <span class="page-title">Clients</span>
+    <button class="btn btn-primary" onclick="openModal('client')">
+      <i class="ti ti-plus" style="font-size:12px"></i>Add client
+    </button>
+  </div>
+  <div class="search-row">
+    <input id="client-search" placeholder="Search clients…" oninput="filterClients()">
+    <select id="client-filter" onchange="filterClients()">
+      <option value="">All clients</option>
+      <option value="active">Active</option>
+      <option value="inactive">Inactive</option>
+    </select>
+  </div>
+  <div class="client-grid" id="client-grid"></div>
+</div>
+ 
+<div class="page" id="page-reports">
+  <div class="page-header">
+    <span class="page-title">Reports</span>
+    <div style="display:flex;gap:8px">
+      <select style="font-size:12px;height:32px;border-radius:var(--radius-md);border:1px solid var(--border);padding:0 10px;font-family:var(--font);background:var(--white);outline:none"
+              id="report-period" onchange="updateReports()">
+        <option value="may">May 2026</option>
+        <option value="apr">April 2026</option>
+        <option value="q1">Q1 2026</option>
+        <option value="fy">FY 2025–26</option>
+      </select>
+      <button class="btn"><i class="ti ti-download" style="font-size:12px"></i>Export PDF</button>
+    </div>
+  </div>
+ 
+  <div class="report-grid">
+    <div class="report-card">
+      <div class="report-icon" style="background:var(--info-bg);color:var(--info-txt)"><i class="ti ti-trending-up"></i></div>
+      <div class="report-title">Revenue summary</div>
+      <div class="report-desc">Total billed, collected, and outstanding for the period</div>
+      <div class="report-metrics">
+        <div class="report-metric"><div class="metric-label">Billed</div><div class="metric-val" id="r-billed">₹2.4L</div></div>
+        <div class="report-metric"><div class="metric-label">Collected</div><div class="metric-val up" id="r-collected">₹1.8L</div></div>
+        <div class="report-metric"><div class="metric-label">Pending</div><div class="metric-val warn" id="r-pending">₹60K</div></div>
+        <div class="report-metric"><div class="metric-label">Overdue</div><div class="metric-val danger" id="r-overdue">₹22K</div></div>
+      </div>
+    </div>
+ 
+    <div class="report-card">
+      <div class="report-icon" style="background:var(--warning-bg);color:#BA7517"><i class="ti ti-receipt-tax"></i></div>
+      <div class="report-title">GST summary</div>
+      <div class="report-desc">Taxable value, CGST, SGST and IGST breakdown ready for your CA</div>
+      <div class="report-metrics">
+        <div class="report-metric"><div class="metric-label">Taxable value</div><div class="metric-val" id="r-taxable">₹2.03L</div></div>
+        <div class="report-metric"><div class="metric-label">GST collected</div><div class="metric-val" id="r-gst">₹36.5K</div></div>
+        <div class="report-metric"><div class="metric-label">CGST</div><div class="metric-val" id="r-cgst">₹18.2K</div></div>
+        <div class="report-metric"><div class="metric-label">SGST</div><div class="metric-val" id="r-sgst">₹18.2K</div></div>
+      </div>
+    </div>
+  </div>
+ 
+  <div class="card">
+    <div class="card-head"><span class="card-title">Monthly billing trend</span></div>
+    <div class="chart-wrap"><canvas id="report-chart"></canvas></div>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>Collected</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#9FE1CB"></div>Billed</div>
+    </div>
+  </div>
+ 
+  <div class="card">
+    <div class="card-head"><span class="card-title">Top clients by revenue</span></div>
+    <table>
+      <thead><tr>
+        <th style="width:30%">Client</th>
+        <th style="width:15%">Invoices</th>
+        <th style="width:20%">Total billed</th>
+        <th style="width:20%">Collected</th>
+        <th style="width:15%">Rate</th>
+      </tr></thead>
+      <tbody id="report-clients"></tbody>
+    </table>
+  </div>
+</div>
+ 
+<div class="modal-backdrop" id="modal-detail">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="detail-num">INV-041</div>
+        <div style="font-size:11px;color:var(--gray-6);margin-top:2px" id="detail-client">Mehta Textiles</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="badge" id="detail-badge"></span>
+        <button class="icon-btn" onclick="closeModal('detail')"><i class="ti ti-x"></i></button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid">
+        <div class="detail-metric"><div class="metric-label">Amount</div><div class="metric-val" id="detail-amount">₹45,000</div></div>
+        <div class="detail-metric"><div class="metric-label">Due date</div><div class="metric-val" id="detail-due">Jun 5</div></div>
+      </div>
+      <table style="margin-bottom:12px">
+        <thead><tr><th style="width:50%">Item</th><th style="width:20%">Qty</th><th style="width:30%">Amount</th></tr></thead>
+        <tbody><tr><td>Consulting services</td><td>10 hrs</td><td>₹30,000</td></tr><tr><td>Design deliverables</td><td>1 set</td><td>₹15,000</td></tr></tbody>
+      </table>
+      <div class="total-row"><span style="color:var(--gray-6)">Subtotal</span><span>₹45,000</span></div>
+      <div class="total-row"><span style="color:var(--gray-6)">GST 18%</span><span>₹8,100</span></div>
+      <div class="total-row grand"><span>Total</span><span>₹53,100</span></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="doAction('reminder')"><i class="ti ti-bell" style="font-size:12px"></i>Send reminder</button>
+      <button class="btn" onclick="doAction('download')"><i class="ti ti-download" style="font-size:12px"></i>Download PDF</button>
+      <button class="btn btn-primary" onclick="doAction('paid')"><i class="ti ti-check" style="font-size:12px"></i>Mark as paid</button>
+    </div>
+  </div>
+</div>
+ 
+<div class="modal-backdrop" id="modal-invoice">
+  <div class="modal" style="width: 1100px; max-width: 95vw; height: 90vh; padding: 0; position: relative;">
+    <button class="icon-btn" style="position: absolute; top: 16px; right: 16px; z-index: 10; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 50%; width: 32px; height: 32px;" onclick="closeModal('invoice')">
+      <i class="ti ti-x"></i>
+    </button>
+    <iframe src="createinvoice.html" style="width: 100%; height: 100%; border: none; border-radius: var(--radius-lg); background: #f9f9f7;"></iframe>
+  </div>
+</div>
+ 
+<div class="modal-backdrop" id="modal-client">
+  <div class="modal" style="width: 560px; max-width: 95vw; height: 85vh; padding: 0; position: relative;">
+    <button class="icon-btn" style="position: absolute; top: 16px; right: 16px; z-index: 10; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 50%; width: 32px; height: 32px;" onclick="closeModal('client')">
+      <i class="ti ti-x"></i>
+    </button>
+    <iframe src="createclient.html" style="width: 100%; height: 100%; border: none; border-radius: var(--radius-lg); background: #f9f9f7;"></iframe>
+  </div>
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

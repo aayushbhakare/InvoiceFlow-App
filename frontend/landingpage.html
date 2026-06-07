@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InvoiceFlow - Automate Your Payments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black: #0D0D0B;
+  --gray-9: #1C1C1A;
+  --gray-8: #333333;
+  --gray-6: #6B6A66;
+  --gray-4: #B4B2A9;
+  --gray-2: #E8E6E0;
+  --gray-1: #F4F3EF;
+  --white: #FAFAF8;
+  --teal: #1D9E75;
+  --red-dim: #FFEAEA;
+  --red-text: #D32F2F;
+  --green-dim: #E8F5E9;
+  --green-text: #2E7D32;
+  --radius: 10px;
+  --font: 'Geist', system-ui, sans-serif;
+  --mono: 'Geist Mono', monospace;
+}
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background: var(--white);
+  color: var(--black);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── layout: Scrolling Left, Fixed Right ── */
+.page {
+  display: flex;
+  min-height: 100vh;
+}
+
+.left {
+  flex: 1.2;
+  padding: 48px 64px 80px 64px;
+  border-right: 1px solid var(--gray-2);
+  overflow-y: auto;
+  height: 100vh;
+}
+
+.right {
+  flex: 0.8;
+  padding: 48px 48px;
+  background: var(--white);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ── left panel components ── */
+.wordmark {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--black);
+  letter-spacing: -.2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 64px;
+}
+
+.wordmark-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); }
+
+.hero-kicker {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-6);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  font-family: var(--mono);
+}
+
+.hero-headline {
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -1.5px;
+  color: var(--black);
+  margin-bottom: 24px;
+}
+
+.hero-headline strong { font-weight: 600; }
+
+.hero-body {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--gray-6);
+  max-width: 480px;
+  margin-bottom: 40px;
+}
+
+/* ── Stats (Outcomes) ── */
+.stat-row {
+  display: flex;
+  gap: 40px;
+  padding: 32px 0;
+  border-top: 1px solid var(--gray-2);
+  border-bottom: 1px solid var(--gray-2);
+  margin-bottom: 32px;
+}
+
+.stat-item { display: flex; flex-direction: column; }
+.stat-num { font-size: 24px; font-weight: 600; color: var(--black); letter-spacing: -1px; }
+.stat-lbl { font-size: 13px; color: var(--gray-6); margin-top: 4px; }
+
+/* ── Target Audience Callout ── */
+.audience-proof {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 64px;
+  font-size: 14px;
+  color: var(--gray-8);
+  font-weight: 500;
+}
+
+/* ── India-Specific Differentiator Box ── */
+.india-box {
+    background: var(--black);
+    color: var(--white);
+    padding: 32px;
+    border-radius: var(--radius);
+    margin-bottom: 64px;
+}
+
+.india-box h3 {
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+}
+
+.india-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.india-list li {
+    font-size: 14px;
+    color: var(--gray-2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.india-list li svg {
+    color: var(--teal);
+}
+
+/* ── Section Headers ── */
+.section-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    letter-spacing: -0.5px;
+}
+
+/* ── How it Works ── */
+.how-it-works {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 64px;
+}
+
+.step-card {
+    padding: 24px;
+    background: var(--gray-1);
+    border-radius: var(--radius);
+}
+
+.step-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--black);
+    color: var(--white);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 12px;
+}
+
+.step-title { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+.step-desc { font-size: 13px; color: var(--gray-6); line-height: 1.5; }
+
+/* ── Excel Comparison ── */
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 64px;
+    background: var(--white);
+    border: 1px solid var(--gray-2);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.comparison-table th, .comparison-table td {
+    padding: 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--gray-2);
+    font-size: 14px;
+}
+
+.comparison-table th { background: var(--gray-1); font-weight: 600; color: var(--gray-8); }
+.comparison-table td:first-child { font-weight: 500; color: var(--gray-6); }
+.comparison-table td:nth-child(2) { color: var(--red-text); background: var(--red-dim); }
+.comparison-table td:nth-child(3) { color: var(--green-text); background: var(--green-dim); font-weight: 500;}
+
+/* ── right panel styling (Auth) ── */
+.form-wrap { width: 100%; max-width: 380px; margin: 0 auto; }
+.tab-row { display: flex; margin-bottom: 32px; border-bottom: 1px solid var(--gray-2); }
+.tab-btn {
+  font-family: var(--font); font-size: 15px; font-weight: 500; color: var(--gray-4);
+  background: none; border: none; padding: 12px 0; margin-right: 32px;
+  cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.tab-btn.active { color: var(--black); border-bottom-color: var(--black); }
+.form-title { font-size: 22px; font-weight: 600; margin-bottom: 8px; letter-spacing: -.5px; }
+.form-sub { font-size: 14px; color: var(--gray-6); margin-bottom: 32px; }
+
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 13px; font-weight: 500; color: var(--gray-8); margin-bottom: 6px; }
+.field input {
+  width: 100%; height: 44px; background: var(--gray-1); border: 1px solid var(--gray-2);
+  border-radius: 8px; padding: 0 14px; font-family: var(--font); font-size: 14px; outline: none;
+}
+.field input:focus { background: var(--white); border-color: var(--black); }
+
+.submit-btn {
+  width: 100%; height: 44px; background: var(--black); color: var(--white);
+  border: none; border-radius: 8px; font-weight: 500; font-size: 15px; cursor: pointer; margin-top: 12px;
+}
+
+.micro-copy {
+    text-align: center;
+    font-size: 12px;
+    color: var(--gray-6);
+    margin-top: 16px;
+}
+
+.form-section { display: none; }
+.form-section.visible { display: block; }
+
+/* ── Mobile Responsiveness ── */
+@media (max-width: 900px) {
+  .page { flex-direction: column; }
+  .left { height: auto; overflow-y: visible; padding: 40px 24px; border-right: none; }
+  .right { position: static; height: auto; padding: 40px 24px; border-top: 1px solid var(--gray-2); }
+  .how-it-works { grid-template-columns: 1fr; }
+  .india-list { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="left">
+    <div class="wordmark">
+      <div class="wordmark-dot"></div>
+      InvoiceFlow
+    </div>
+
+    <div class="hero">
+      <p class="hero-kicker">For Indian Freelancers, Consultants & Agencies</p>
+      <h1 class="hero-headline">
+        Get paid faster without<br>
+        <strong>chasing clients.</strong>
+      </h1>
+      <p class="hero-body">
+        Create GST-ready invoices, track outstanding payments, and automate polite WhatsApp & Email reminders from one dashboard. Focus on the work, we'll handle the collection.
+      </p>
+
+      <div class="stat-row">
+        <div class="stat-item">
+          <span class="stat-num">GST</span>
+          <span class="stat-lbl">ready instantly</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num">Auto</span>
+          <span class="stat-lbl">payment reminders</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num">₹0</span>
+          <span class="stat-lbl">to get started</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="audience-proof">
+        Built specifically for independent Indian service businesses.
+    </div>
+
+    <div class="india-box">
+        <h3>Built around Indian Tax Rules</h3>
+        <ul class="india-list">
+            <li>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Automatic CGST, SGST & IGST routing
+            </li>
+            <li>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Built-in UPI payment QR codes
+            </li>
+            <li>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Compliant sequential invoice numbering
+            </li>
+            <li>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                HSN & SAC code support
+            </li>
+        </ul>
+    </div>
+
+    <h2 class="section-title">How It Works</h2>
+    <div class="how-it-works">
+        <div class="step-card">
+            <span class="step-num">01</span>
+            <div class="step-title">Add Client</div>
+            <div class="step-desc">Enter their details once. We save it securely for future billing.</div>
+        </div>
+        <div class="step-card">
+            <span class="step-num">02</span>
+            <div class="step-title">Generate Invoice</div>
+            <div class="step-desc">Add line items. We automatically calculate the correct tax tier and attach your payment info.</div>
+        </div>
+        <div class="step-card">
+            <span class="step-num">03</span>
+            <div class="step-title">Send & Track</div>
+            <div class="step-desc">Email the invoice directly from the dashboard or download the PDF to share via WhatsApp.</div>
+        </div>
+        <div class="step-card">
+            <span class="step-num">04</span>
+            <div class="step-title">Auto-Reminders</div>
+            <div class="step-desc">Invoice overdue? We send an automated, polite follow-up so you don't have to.</div>
+        </div>
+    </div>
+
+    <h2 class="section-title">Why Not Excel?</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Feature</th>
+            <th>Excel + PDF</th>
+            <th>InvoiceFlow</th>
+        </tr>
+        <tr>
+            <td>Overdue Reminders</td>
+            <td>Manual & Awkward</td>
+            <td>100% Automated</td>
+        </tr>
+        <tr>
+            <td>GST Calculations</td>
+            <td>Manual Formulas</td>
+            <td>Automatic Routing</td>
+        </tr>
+        <tr>
+            <td>Status Tracking</td>
+            <td>Guesswork</td>
+            <td>Centralized Tracking</td>
+        </tr>
+        <tr>
+            <td>Payment Links</td>
+            <td>Copy/Paste UPI</td>
+            <td>Embedded in Invoice</td>
+        </tr>
+    </table>
+  </div>
+
+  <div class="right">
+    <div class="form-wrap">
+      <div class="tab-row">
+        <button class="tab-btn active" id="tab-login" onclick="show('login')">Sign in</button>
+        <button class="tab-btn" id="tab-register" onclick="show('register')">Create account</button>
+      </div>
+
+      <div class="form-section visible" id="sec-login">
+        <h2 class="form-title">Welcome back</h2>
+        <p class="form-sub">Sign in to track your outstanding payments.</p>
+        <form id="login-form">
+            <div class="field">
+            <label>Email address</label>
+            <input type="email" placeholder="you@example.com" required>
+            </div>
+            <div class="field">
+            <label>Password</label>
+            <input type="password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="submit-btn">Sign in to Dashboard</button>
+        </form>
+      </div>
+
+      <div class="form-section" id="sec-register">
+        <h2 class="form-title">Start getting paid</h2>
+        <form id="register-form">
+            <div class="field">
+                <label>First name</label>
+                <input type="text" required>
+            </div>
+            <div class="field">
+                <label>Email address</label>
+                <input type="email" required>
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input type="password" placeholder="Min. 8 characters" required>
+            </div>
+            <button type="submit" class="submit-btn">Create Free Account</button>
+            <p class="micro-copy">No setup required. Create your first invoice in under 2 minutes.</p>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function show(view) {
+  document.querySelectorAll('.form-section').forEach(s => s.classList.remove('visible'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + view).classList.add('visible');
+  document.getElementById('tab-' + view).classList.add('active');
+}
+</script>
+<script src="app.js"></script>
+</body>
+</html>

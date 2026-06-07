@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Client — InvoiceFlow</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="createclient.css">
+</head>
+<body>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-header-left">
+      <div class="header-icon">
+        <i class="ti ti-user-plus"></i>
+      </div>
+      <div>
+        <div class="card-title">Add client</div>
+        <div class="card-sub">Client details saved for future invoices</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-body">
+
+    <div class="row col1">
+      <div class="field" id="f-biz">
+        <label>Business name <span class="req">*</span></label>
+        <input type="text" id="biz-name" placeholder="e.g. Mehta Textiles Pvt. Ltd." oninput="chk('f-biz', this.value)">
+        <span class="err">Business name is required</span>
+      </div>
+    </div>
+
+    <div class="row col2">
+      <div class="field" id="f-contact">
+        <label>Contact person <span class="req">*</span></label>
+        <input type="text" id="contact" placeholder="Ravi Mehta" oninput="chk('f-contact', this.value)">
+        <span class="err">Contact name is required</span>
+      </div>
+      <div class="field" id="f-mobile">
+        <label>Mobile number <span class="req">*</span></label>
+        <input type="tel" id="mobile" placeholder="98765 43210" maxlength="10" oninput="chkMobile(this.value)">
+        <span class="err">Enter a valid 10-digit number</span>
+      </div>
+    </div>
+
+    <div class="row col1">
+      <div class="field" id="f-email">
+        <label>Email address <span class="req">*</span></label>
+        <input type="email" id="email" placeholder="ravi@company.com" oninput="chkEmail(this.value)">
+        <span class="err">Enter a valid email address</span>
+      </div>
+    </div>
+
+    <div class="divider-label">
+      <span>Address</span>
+    </div>
+
+    <div class="row col1">
+      <div class="field">
+        <label>Street address</label>
+        <input type="text" id="c-address" placeholder="Building, street, area">
+      </div>
+    </div>
+
+    <div class="row col2">
+      <div class="field">
+        <label>Pincode</label>
+        <input id="c-pincode" type="number" oninput="fetchPincodeData(this.value)" placeholder="e.g. 400001">
+      </div>
+      <div class="field">
+        <label>City</label>
+        <input id="c-city" placeholder="Auto-filled" readonly>
+      </div>
+    </div>
+    
+    <div class="row col1">
+      <div class="field">
+        <label>State</label>
+        <input id="c-state" placeholder="Auto-filled" readonly>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card-footer">
+    <p class="required-note"><span>*</span> Required fields</p>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="resetForm()">Cancel</button>
+      <button class="btn-save" onclick="submitForm()">
+        <i class="ti ti-user-plus"></i>
+        Add client
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <i class="ti ti-circle-check"></i>
+  <span id="toast-msg"></span>
+</div>
+
+<script src="createclient.js"></script>
+</body>
+</html>

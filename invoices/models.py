@@ -4,12 +4,28 @@ from django.contrib.auth.models import User
 from django.db import models
 
 class Services(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='services', null=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
     rate = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     def __str__(self):
         return self.name
+    
+class Client(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='clients', null=True)
+    name = models.CharField(max_length=255)
+    contact_person = models.CharField(max_length=255, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    pincode = models.CharField(max_length=10, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.user.username})"
 
 class Invoice(models.Model):
 
@@ -20,7 +36,8 @@ class Invoice(models.Model):
         ('OVERDUE', 'Overdue'),
         ('CANCELLED', 'Cancelled'),
     )
-
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='invoices', null=True, blank=True)
+    client = models.ForeignKey(Client, on_delete=models.PROTECT, related_name='invoices', null=True, blank=True)
     invoice_number = models.CharField(max_length=25, unique=True)
     client_name = models.CharField(max_length=100)
     issue_date = models.DateField()
@@ -44,7 +61,7 @@ class LineItem(models.Model):
     total_hours = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
 
     def __str__(self):
-        # 1. Check if the service actually exists on this row
+        
         if self.services:
             return f"LineItem for {self.invoice.invoice_number} - {self.services.name}"
         else:
@@ -58,7 +75,7 @@ class Profile(models.Model):
         ('COMPANY', 'Registered Company'),
     )
     
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile', null=True)
     name = models.CharField(max_length=255, default="") 
     display_name = models.CharField(max_length=255, default="") 
     entity_type = models.CharField(max_length=20, choices=ENTITY_CHOICES, default='INDIVIDUAL')
@@ -72,3 +89,6 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"{self.display_name} ({self.get_entity_type_display()})"
+    
+
+

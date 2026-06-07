@@ -1,13 +1,16 @@
 from rest_framework import serializers
 from decimal import Decimal
-from .models import Invoice, LineItem, Services, Profile
+from .models import Client, Invoice, LineItem, Services, Profile
 import re
 from django.contrib.auth.models import User
+import requests
+import datetime
 
 class ServicesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Services
-        fields = ['id', 'name', 'rate']
+        fields = ['id', 'name', 'description', 'rate']
+        read_only_fields = ['id']
 
 class LineItemSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
@@ -25,7 +28,7 @@ class LineItemSerializer(serializers.ModelSerializer):
         return 0.00
 
 class InvoiceSerializer(serializers.ModelSerializer):
-    items = LineItemSerializer(many=True)
+    items = LineItemSerializer(many=True, source='items')
 
     subtotal = serializers.SerializerMethodField()
     discount_amount = serializers.SerializerMethodField()
@@ -91,16 +94,36 @@ class InvoiceSerializer(serializers.ModelSerializer):
         return round(taxable + total_tax, 2)
 
     def create(self, validated_data):
-        request = self.context.get('request')
+        items_data = validated_data.pop('lineitem_set', [])
         
+        request = self.context.get('request')
         if request and hasattr(request, 'user'):
-            profile = getattr(request.user, 'company_profile', None)
+            user = request.user
+            profile = getattr(user, 'profile', None) 
             
+            # --- 1. Apply Profile Defaults ---
             if profile:
-                validated_data['bank_details'] = profile.default_bank_details
-                validated_data['notes'] = profile.default_notes
+                if not validated_data.get('bank_details'):
+                    validated_data['bank_details'] = getattr(profile, 'default_bank_details', '')
+                    
+                if not validated_data.get('notes'):
+                    validated_data['notes'] = getattr(profile, 'default_notes', '')
 
-        return super().create(validated_data)
+            # --- 2. Auto-Generate Invoice Number ---
+            current_year = datetime.datetime.now().year
+            invoice_count = Invoice.objects.filter(user=user, issue_date__year=current_year).count() + 1
+            validated_data['invoice_number'] = f"INV-{current_year}-{invoice_count:04d}"
+
+        # --- 3. Save to Database ---
+        if user:
+            invoice = Invoice.objects.create(user=user, **validated_data)
+        else:
+            raise Exception("Cannot create invoice without an authenticated user.")
+        
+        for item_data in items_data:
+            LineItem.objects.create(invoice=invoice, **item_data)
+            
+        return invoice
     
     def validate(self, attrs):
         if self.instance:
@@ -138,6 +161,15 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
         return instance
     
+class ClientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Client
+        fields = [
+            'id', 'name', 'contact_person', 'email', 'phone', 
+            'state', 'address', 'pincode', 'is_active', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']
+    
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -159,36 +191,64 @@ class RegisterSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = [
-            'id', 'name', 'display_name', 'entity_type', 
-            'phone_number', 'bank_name', 'account_number', 
-            'ifsc_code', 'upi_id', 'company_name', 'gstin'
-        ]
-        read_only_fields = ['id']
-
-    def validate_phone_number(self, value):
-        if not value.isdigit():
-            raise serializers.ValidationError("Phone number must contain only numbers.")
-        phone_regex = "^[6-9]{1}[0-9]{9}$"
-        if len(value) != 10 or not re.match(phone_regex, value):
-            raise serializers.ValidationError("Phone number must be exactly 10 digits and start with 6, 7, 8, or 9.")
-        return value
+        fields = ['display_name', 'phone_number', 'upi_id', 'account_number', 'ifsc_code', 'gstin']
 
     def validate_ifsc_code(self, value):
-
-        value = value.upper() 
-        ifsc_regex = "^[A-Z]{4}0[A-Z0-9]{6}$"
-        if not re.match(ifsc_regex, value):
-            raise serializers.ValidationError("Invalid IFSC Code format. Example: SBIN0123456")
+        value = value.upper()
+        if len(value) != 11 or not value.isalnum():
+            raise serializers.ValidationError("Invalid IFSC code format.")
         return value
 
-   
-    def validate_gstin(self, value):
-        if value: 
-            value = value.upper()
-            if len(value) != 15 or not value.isalnum():
-                raise serializers.ValidationError("GSTIN must be exactly 15 alphanumeric characters.")
-        return value
+    def create(self, validated_data):
+        return self._save_profile(super().create, validated_data)
+
+    def update(self, instance, validated_data):
+        return self._save_profile(super().update, validated_data, instance)
+
+    def _save_profile(self, save_method, validated_data, instance=None):
+        ifsc = validated_data.get('ifsc_code')
+        if ifsc:
+            try:
+                response = requests.get(f"https://ifsc.razorpay.com/{ifsc}", timeout=5)
+                if response.status_code == 200:
+                    bank_data = response.json()
+                    validated_data['bank_name'] = bank_data.get('BANK')
+            except requests.RequestException:
+                validated_data['bank_name'] = "Unknown Bank"
+
+        self._assign_entity_type(validated_data)
+
+        if instance:
+            return save_method(instance, validated_data)
+        return save_method(validated_data)
+    
+    def _assign_entity_type(self, validated_data):
+        gstin = validated_data.get('gstin')
+        
+        if not gstin:
+            validated_data['entity_type'] = 'Individual'
+            return
+
+        gstin = gstin.upper()
+        if len(gstin) >= 6:
+            entity_char = gstin[5] 
+            
+            if entity_char == 'P':
+                validated_data['entity_type'] = 'Individual/Proprietor'
+            elif entity_char == 'C':
+                validated_data['entity_type'] = 'Company'
+            elif entity_char == 'F':
+                validated_data['entity_type'] = 'Partnership Firm'
+            elif entity_char == 'H':
+                validated_data['entity_type'] = 'HUF'
+            elif entity_char == 'T':
+                validated_data['entity_type'] = 'Trust'
+            else:
+                validated_data['entity_type'] = 'Other'
+        else:
+            validated_data['entity_type'] = 'Individual'
+
+
     
     
 
