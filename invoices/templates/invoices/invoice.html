@@ -4,267 +4,341 @@
     <meta charset="UTF-8">
     <title>Invoice {{ invoice.invoice_number }}</title>
     <style>
-        /* Base Typography & Canvas */
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            color: #2b3445;
+            color: #1f2937;
             line-height: 1.5;
             margin: 0;
-            padding: 30px;
+            padding: 40px;
             font-size: 13px;
+            background: #fff;
         }
 
-        /* Brand Accent Colors */
-        :root {
-            --primary: #4F46E5; /* Modern Indigo */
-            --primary-light: #EEF2FF;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
-        }
-
-        /* Layout Tables (WeasyPrint Safe) */
         table { width: 100%; border-collapse: collapse; }
         td { vertical-align: top; }
 
-        /* Document Header */
-        .header-banner {
-            margin-bottom: 40px;
-            border-bottom: 2px solid #4F46E5;
+        /* Header */
+        .header {
+            border-bottom: 2.5px solid #1D9E75;
             padding-bottom: 20px;
+            margin-bottom: 28px;
         }
         .brand-name {
-            font-size: 28px;
-            font-weight: 800;
-            color: #4F46E5;
-            letter-spacing: -0.5px;
-            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            color: #1D9E75;
+            margin: 0 0 2px 0;
         }
-        .invoice-label {
-            font-size: 14px;
+        .brand-sub {
+            font-size: 11px;
             color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        }
+        .invoice-meta {
             text-align: right;
-            margin-bottom: 5px;
+        }
+        .invoice-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #6b7280;
+            margin-bottom: 4px;
         }
         .invoice-number {
-            font-size: 24px;
-            font-weight: bold;
+            font-size: 20px;
+            font-weight: 700;
             color: #111827;
-            text-align: right;
         }
-
-        /* Modern Status Badge */
         .badge {
             display: inline-block;
-            padding: 6px 12px;
+            padding: 4px 12px;
             border-radius: 20px;
-            font-size: 11px;
-            font-weight: bold;
+            font-size: 10px;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            text-align: right;
-            float: right;
-            margin-top: 10px;
+            margin-top: 6px;
         }
-        .badge-paid { background-color: #d1fae5; color: #065f46; }
-        .badge-unpaid { background-color: #fee2e2; color: #991b1b; }
+        .badge-paid     { background: #d1fae5; color: #065f46; }
+        .badge-pending  { background: #fef3c7; color: #92400e; }
+        .badge-overdue  { background: #fee2e2; color: #991b1b; }
+        .badge-draft    { background: #f3f4f6; color: #374151; }
 
-        /* Meta Data Grid (Dates, etc) */
-        .meta-box {
-            background-color: #f9fafb;
-            border: 1px solid #f3f4f6;
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 40px;
+        /* Addresses */
+        .addresses { margin-bottom: 24px; }
+        .addr-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
         }
-        .meta-label { font-size: 11px; color: #6b7280; text-transform: uppercase; margin-bottom: 4px; }
-        .meta-value { font-size: 14px; font-weight: 600; color: #111827; }
-
-        /* Address Section */
-        .address-section { margin-bottom: 40px; }
-        .address-title { font-size: 11px; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; }
-        .address-name { font-size: 15px; font-weight: bold; color: #111827; margin-bottom: 4px; }
-        .address-text { color: #4b5563; line-height: 1.6; }
-
-        /* Elevated Items Table */
-        .items-table { margin-bottom: 30px; }
-        .items-table th {
-            background-color: #4F46E5;
-            color: white;
-            padding: 12px 15px;
+        .addr-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+        .addr-text {
             font-size: 12px;
+            color: #4b5563;
+            line-height: 1.7;
+        }
+
+        /* Dates bar */
+        .dates-bar {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 14px 20px;
+            margin-bottom: 28px;
+        }
+        .date-label {
+            font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            color: #6b7280;
+            margin-bottom: 3px;
+        }
+        .date-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        /* Items table */
+        .items-table { margin-bottom: 24px; }
+        .items-table th {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #6b7280;
+            font-weight: 600;
+            padding: 10px 12px;
+            border-bottom: 2px solid #1D9E75;
             text-align: left;
         }
-        .items-table .align-right { text-align: right; }
+        .items-table th.align-right { text-align: right; }
         .items-table td {
-            padding: 15px;
-            border-bottom: 1px solid #e5e7eb;
+            padding: 12px;
+            border-bottom: 1px solid #f3f4f6;
             color: #374151;
+            font-size: 13px;
         }
-        .items-table tr:nth-child(even) { background-color: #f9fafb; } /* Subtle zebra striping */
+        .items-table tbody tr:last-child td { border-bottom: none; }
+        .items-table .align-right { text-align: right; }
+        .items-table tbody tr:nth-child(even) td { background: #f9fafb; }
 
-        /* Totals Block */
-        .totals-wrapper { width: 100%; }
-        .totals-table { width: 45%; float: right; }
-        .totals-table td { padding: 8px 15px; }
-        .totals-label { color: #4b5563; text-align: left; }
-        
-        .grand-total-row {
-            background-color: #EEF2FF;
-            border-top: 2px solid #4F46E5;
+        /* Totals */
+        .totals-wrapper { margin-bottom: 36px; }
+        .totals-table {
+            width: 42%;
+            float: right;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            overflow: hidden;
         }
-        .grand-total-row td {
-            padding: 15px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #4F46E5;
+        .totals-table td {
+            padding: 9px 14px;
+            font-size: 12px;
+            border-bottom: 1px solid #f3f4f6;
         }
-
+        .totals-table tr:last-child td { border-bottom: none; }
+        .totals-label { color: #4b5563; }
+        .totals-value { text-align: right; color: #111827; }
+        .total-row td {
+            background: #f0fdf8;
+            border-top: 2px solid #1D9E75 !important;
+            font-size: 14px;
+            font-weight: 700;
+            color: #065f46;
+            padding: 12px 14px;
+        }
         .clearfix::after { content: ""; clear: both; display: table; }
 
         /* Footer */
         .footer {
-            margin-top: 50px;
+            clear: both;
+            margin-top: 36px;
             padding-top: 20px;
             border-top: 1px solid #e5e7eb;
-            font-size: 12px;
-            color: #6b7280;
+            display: table;
+            width: 100%;
         }
-        .footer-title { font-weight: bold; color: #111827; margin-bottom: 5px; text-transform: uppercase; font-size: 11px;}
+        .footer-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 20px; }
+        .footer-col:last-child { padding-right: 0; padding-left: 20px; }
+        .footer-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6b7280;
+            margin-bottom: 6px;
+        }
+        .footer-text {
+            font-size: 12px;
+            color: #4b5563;
+            line-height: 1.8;
+        }
+        .footer-note {
+            font-size: 12px;
+            color: #4b5563;
+            font-style: italic;
+            line-height: 1.7;
+        }
     </style>
 </head>
 <body>
 
-    <table class="header-banner">
+    <!-- Header -->
+    <table class="header">
         <tr>
             <td>
-                <div class="brand-name">InvoiceFlow</div>
+                <div class="brand-name">{{ billed_from.name }}</div>
+                <div class="brand-sub">
+                    {% if billed_from.gstin %}GSTIN: {{ billed_from.gstin }}{% endif %}
+                    {% if billed_from.phone %} &nbsp;·&nbsp; {{ billed_from.phone }}{% endif %}
+                </div>
+                <div class="brand-sub">{{ billed_from.email }}</div>
             </td>
-            <td>
-                <div class="invoice-label">Invoice</div>
+            <td class="invoice-meta">
+                <div class="invoice-title">Invoice</div>
                 <div class="invoice-number">#{{ invoice.invoice_number }}</div>
-                <div class="badge {% if invoice.status == 'PAID' %}badge-paid{% else %}badge-unpaid{% endif %}">
-                    {{ invoice.status }}
+                <div>
+                    {% if invoice.status == 'PAID' %}
+                        <span class="badge badge-paid">Paid</span>
+                    {% elif invoice.status == 'OVERDUE' %}
+                        <span class="badge badge-overdue">Overdue</span>
+                    {% elif invoice.status == 'PENDING' %}
+                        <span class="badge badge-pending">Pending</span>
+                    {% else %}
+                        <span class="badge badge-draft">{{ invoice.status }}</span>
+                    {% endif %}
                 </div>
             </td>
         </tr>
     </table>
 
-    <table class="address-section">
+    <!-- Addresses -->
+    <table class="addresses">
         <tr>
-            <td style="width: 50%; padding-right: 20px;">
-                <div class="address-title">Billed From</div>
-                <div class="address-name">InvoiceFlow Solutions</div>
-                <div class="address-text">
-                    Office 402, IT Park<br>
-                    Mumbai, Maharashtra 400070<br>
-                    GSTIN: 27AABCI9603R1ZX
+            <td style="width:50%; padding-right:24px;">
+                <div class="addr-label">Billed From</div>
+                <div class="addr-name">{{ billed_from.name }}</div>
+                <div class="addr-text">
+                    {% if billed_from.gstin %}GSTIN: {{ billed_from.gstin }}<br>{% endif %}
+                    {% if billed_from.phone %}Phone: {{ billed_from.phone }}<br>{% endif %}
+                    {{ billed_from.email }}
                 </div>
             </td>
-            <td style="width: 50%; padding-left: 20px;">
-                <div class="address-title">Billed To</div>
-                <div class="address-name">{{ invoice.client_name }}</div>
-                <div class="address-text">
+            <td style="width:50%; padding-left:24px;">
+                <div class="addr-label">Billed To</div>
+                <div class="addr-name">{{ invoice.client_name }}</div>
+                <div class="addr-text">
                     {% if invoice.client_address %}{{ invoice.client_address|linebreaksbr }}<br>{% endif %}
-                    State: {{ invoice.client_state }}
+                    {% if invoice.client_state %}{{ invoice.client_state }}{% endif %}{% if invoice.client_pincode %} — {{ invoice.client_pincode }}{% endif %}
                 </div>
             </td>
         </tr>
     </table>
 
-    <table class="meta-box">
+    <!-- Dates -->
+    <table class="dates-bar">
         <tr>
-            <td style="width: 50%;">
-                <div class="meta-label">Issue Date</div>
-                <div class="meta-value">{{ invoice.issue_date }}</div>
+            <td style="width:33%;">
+                <div class="date-label">Issue Date</div>
+                <div class="date-value">{{ invoice.issue_date }}</div>
             </td>
-            <td style="width: 50%;">
-                <div class="meta-label">Payment Due By</div>
-                <div class="meta-value">{{ invoice.due_date }}</div>
+            <td style="width:33%;">
+                <div class="date-label">Payment Due</div>
+                <div class="date-value">{{ invoice.due_date }}</div>
+            </td>
+            <td style="width:33%; text-align:right;">
+                <div class="date-label">Amount Due</div>
+                <div class="date-value" style="color:#1D9E75;">₹{{ invoice.total_amount }}</div>
             </td>
         </tr>
     </table>
 
+    <!-- Line Items -->
     <table class="items-table">
         <thead>
             <tr>
-                <th>Service Description</th>
-                <th>Rate</th>
-                <th>Hours</th>
-                <th class="align-right">Line Total</th>
+                <th style="width:40%;">Service / Line Item</th>
+                <th class="align-right" style="width:20%;">Rate (₹)</th>
+                <th class="align-right" style="width:20%;">Hrs / Qty</th>
+                <th class="align-right" style="width:20%;">Amount (₹)</th>
             </tr>
         </thead>
         <tbody>
             {% for item in line_items %}
             <tr>
-                <td style="font-weight: 500;">{{ item.service_name }}</td>
-                <td>${{ item.service_rate }}</td>
-                <td>{{ item.total_hours }}</td>
-                <td class="align-right">${{ item.line_total }}</td>
+                <td style="font-weight:500; color:#111827;">{{ item.service_name }}</td>
+                <td class="align-right">₹{{ item.service_rate }}</td>
+                <td class="align-right">{{ item.total_hours }}</td>
+                <td class="align-right" style="font-weight:600;">₹{{ item.line_total }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
+    <!-- Totals -->
     <div class="totals-wrapper clearfix">
         <table class="totals-table">
             <tr>
                 <td class="totals-label">Subtotal</td>
-                <td class="align-right">${{ invoice.subtotal }}</td>
+                <td class="totals-value">₹{{ invoice.subtotal }}</td>
             </tr>
-            
             {% if invoice.discount_percentage > 0 %}
             <tr>
                 <td class="totals-label">Discount ({{ invoice.discount_percentage }}%)</td>
-                <td class="align-right">-${{ invoice.discount_amount }}</td>
+                <td class="totals-value" style="color:#059669;">−₹{{ invoice.discount_amount }}</td>
             </tr>
             <tr>
                 <td class="totals-label">Taxable Amount</td>
-                <td class="align-right">${{ invoice.taxable_amount }}</td>
+                <td class="totals-value">₹{{ invoice.taxable_amount }}</td>
             </tr>
             {% endif %}
-
             {% if invoice.cgst > 0 or invoice.sgst > 0 %}
             <tr>
                 <td class="totals-label">CGST (9%)</td>
-                <td class="align-right">${{ invoice.cgst }}</td>
+                <td class="totals-value">₹{{ invoice.cgst }}</td>
             </tr>
             <tr>
                 <td class="totals-label">SGST (9%)</td>
-                <td class="align-right">${{ invoice.sgst }}</td>
+                <td class="totals-value">₹{{ invoice.sgst }}</td>
             </tr>
             {% endif %}
-
             {% if invoice.igst > 0 %}
             <tr>
                 <td class="totals-label">IGST ({{ invoice.tax_rate }}%)</td>
-                <td class="align-right">${{ invoice.igst }}</td>
+                <td class="totals-value">₹{{ invoice.igst }}</td>
             </tr>
             {% endif %}
-
-            <tr class="grand-total-row">
+            <tr class="total-row">
                 <td>Total Due</td>
-                <td class="align-right">${{ invoice.total_amount }}</td>
+                <td style="text-align:right;">₹{{ invoice.total_amount }}</td>
             </tr>
         </table>
     </div>
 
+    <!-- Footer: Bank Details + Notes -->
     <div class="footer">
-        {% if invoice.bank_details %}
-            <div class="footer-title">Payment Instructions</div>
-            <div style="margin-bottom: 12px; color: #4b5563;">
-                {{ invoice.bank_details|linebreaksbr }}
-            </div>
-        {% endif %}
-
-        {% if invoice.notes %}
-            <span style="font-style: italic; display: inline-block;">
-                {{ invoice.notes }}
-            </span>
-        {% endif %}
+        <div class="footer-col">
+            {% if bank_details %}
+            <div class="footer-label">Payment Instructions</div>
+            <div class="footer-text">{{ bank_details|linebreaksbr }}</div>
+            {% endif %}
+        </div>
+        <div class="footer-col">
+            {% if invoice.notes %}
+            <div class="footer-label">Notes</div>
+            <div class="footer-note">{{ invoice.notes }}</div>
+            {% endif %}
+        </div>
     </div>
 
 </body>

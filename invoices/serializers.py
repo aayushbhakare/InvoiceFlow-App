@@ -1,3 +1,5 @@
+import profile
+
 from rest_framework import serializers
 from decimal import Decimal
 from .models import Client, Invoice, LineItem, Services, Profile
@@ -14,21 +16,22 @@ class ServicesSerializer(serializers.ModelSerializer):
 
 class LineItemSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
-    service_name = serializers.CharField(source='services.name', read_only=True)
-    service_rate = serializers.DecimalField(source='services.rate', read_only=True, max_digits=10, decimal_places=2)
-
+    service_name = serializers.CharField(read_only=True)
+    service_rate = serializers.DecimalField(source='rate', read_only=True, max_digits=10, decimal_places=2)
     line_total = serializers.SerializerMethodField()
+
     class Meta:
         model = LineItem
         fields = ['id', 'invoice', 'services','service_name', 'service_rate','line_total', 'total_hours']
         read_only_fields = ['invoice']
+
     def get_line_total(self, obj):
-        if obj.services and obj.total_hours:
-            return round(obj.total_hours * obj.services.rate, 2)
+        if obj.rate and obj.total_hours:
+            return round(obj.total_hours * obj.rate, 2)
         return 0.00
 
 class InvoiceSerializer(serializers.ModelSerializer):
-    items = LineItemSerializer(many=True, source='items')
+    items = LineItemSerializer(many=True)
 
     subtotal = serializers.SerializerMethodField()
     discount_amount = serializers.SerializerMethodField()
@@ -45,18 +48,17 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'subtotal', 'discount_amount', 'total_amount', 'cgst', 'sgst',
             'igst' , 'taxable_amount',
             'client_address', 'client_state', 'tax_rate',
-            'bank_details', 'notes'
+            'bank_details', 'notes', 'client'
             ]
+        read_only_fields = ['invoice_number']
 
     def get_subtotal(self, obj):
         total = 0
-
         for item in obj.items.all():
-            if item.services:
-                total += (item.total_hours * item.services.rate)
+            if item.rate and item.total_hours:
+                total += (item.total_hours * item.rate)
             else:
-                total += 0 
-                
+                total += 0
         return round(total, 2)
 
     def get_discount_amount(self, obj):
@@ -69,21 +71,27 @@ class InvoiceSerializer(serializers.ModelSerializer):
         discount = self.get_discount_amount(obj)
         taxable_amount = subtotal - discount
         return float(taxable_amount)
+    
+    def _get_seller_state(self, obj):
+        try:
+            return obj.user.profile.state.strip().lower() if obj.user.profile.state else 'maharashtra'
+        except:
+            return 'maharashtra'
 
     def get_cgst(self, obj):
-        if obj.client_state and obj.client_state.strip().lower() == 'maharashtra':
+        if obj.client_state and obj.client_state.strip().lower() == self._get_seller_state(obj):
             taxable = self.get_taxable_amount(obj)
             return round(taxable * (float(obj.tax_rate) / 200), 2)
         return 0.00 
     
     def get_sgst(self, obj):
-        if obj.client_state and obj.client_state.strip().lower() == 'maharashtra':
+        if obj.client_state and obj.client_state.strip().lower() == self._get_seller_state(obj):
             taxable = self.get_taxable_amount(obj)
             return round(taxable * (float(obj.tax_rate) / 200), 2)
         return 0.00
     
     def get_igst(self, obj):
-        if obj.client_state and obj.client_state.strip().lower()!='maharashtra':
+        if not obj.client_state or obj.client_state.strip().lower() != self._get_seller_state(obj):
             taxable = self.get_taxable_amount(obj)
             return round(taxable * (float(obj.tax_rate) / 100), 2)
         return 0.00
@@ -92,37 +100,69 @@ class InvoiceSerializer(serializers.ModelSerializer):
         taxable = self.get_taxable_amount(obj)
         total_tax = self.get_cgst(obj) + self.get_sgst(obj) + self.get_igst(obj)
         return round(taxable + total_tax, 2)
+    
+    def get_total_amount_from_items(self, items_data, validated_data):
+        from decimal import Decimal
+        subtotal = Decimal('0')
+        for item in items_data:
+            service = item.get('services')
+            hours = item.get('total_hours', 0)
+            if service and hasattr(service, 'rate'):
+                subtotal += Decimal(str(hours)) * service.rate
+
+        discount = (subtotal * validated_data.get('discount_percentage', Decimal('0'))) / Decimal('100')
+        taxable = subtotal - discount
+        tax_rate = validated_data.get('tax_rate', Decimal('0'))
+        tax = taxable * (tax_rate / Decimal('100'))
+        return round(taxable + tax, 2)
 
     def create(self, validated_data):
-        items_data = validated_data.pop('lineitem_set', [])
+        items_data = validated_data.pop('items', [])
         
         request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            user = request.user
-            profile = getattr(user, 'profile', None) 
+        user = getattr(request, 'user', None) if request else None
+        # if request and hasattr(request, 'user'):
+        #     user = request.user
+        #     profile = getattr(user, 'profile', None) 
+        if not user:
+            raise serializers.ValidationError("Cannot create invoice without an authenticated user.")
             
-            # --- 1. Apply Profile Defaults ---
-            if profile:
-                if not validated_data.get('bank_details'):
-                    validated_data['bank_details'] = getattr(profile, 'default_bank_details', '')
-                    
-                if not validated_data.get('notes'):
-                    validated_data['notes'] = getattr(profile, 'default_notes', '')
+        profile = getattr(user, 'profile', None)
+        if profile:
+            if not validated_data.get('bank_details'):
+                validated_data['bank_details'] = getattr(profile, 'default_bank_details', '')
 
-            # --- 2. Auto-Generate Invoice Number ---
-            current_year = datetime.datetime.now().year
-            invoice_count = Invoice.objects.filter(user=user, issue_date__year=current_year).count() + 1
-            validated_data['invoice_number'] = f"INV-{current_year}-{invoice_count:04d}"
+            if not validated_data.get('notes'):
+                validated_data['notes'] = getattr(profile, 'default_notes', '')
+
+        # --- 2. Auto-Generate Invoice Number ---
+        current_year = datetime.datetime.now().year
+        invoice_count = Invoice.objects.filter(user=user, issue_date__year=current_year).count() + 1
+        validated_data['invoice_number'] = f"INV-{current_year}-{invoice_count:04d}"
 
         # --- 3. Save to Database ---
-        if user:
-            invoice = Invoice.objects.create(user=user, **validated_data)
-        else:
-            raise Exception("Cannot create invoice without an authenticated user.")
+        # if user:
+        #     invoice = Invoice.objects.create(user=user, **validated_data)
+        # else:
+        #     raise Exception("Cannot create invoice without an authenticated user.")
         
-        for item_data in items_data:
-            LineItem.objects.create(invoice=invoice, **item_data)
+        # for item_data in items_data:
+        #     LineItem.objects.create(invoice=invoice, **item_data)
             
+        # return invoice
+
+        validated_data['total_amount'] = self.get_total_amount_from_items(items_data, validated_data)
+        request = self.context.get('request')
+        if request and request.data.get('total_amount'):
+            validated_data['total_amount'] = Decimal(str(request.data['total_amount']))
+
+        invoice = Invoice.objects.create(user=user, **validated_data)
+        for item_data in items_data:
+            service = item_data.get('services')
+            if service is not None:
+                item_data['rate'] = service.rate
+                item_data['service_name'] = service.name   
+            LineItem.objects.create(invoice=invoice, **item_data)
         return invoice
     
     def validate(self, attrs):
@@ -130,7 +170,15 @@ class InvoiceSerializer(serializers.ModelSerializer):
             if self.instance.status == 'PAID':
                 raise serializers.ValidationError(
                     {"status": "This invoice is marked as PAID. It is locked and cannot be modified."}
-                )
+                )  
+        client_name = attrs.get('client_name')
+        if not client_name and self.instance:
+            client_name = self.instance.client_name
+
+        if client_name and Client.objects.filter(name=client_name, is_active=False).exists():
+            raise serializers.ValidationError(
+                {"client_name": "Cannot create or modify an invoice for an inactive client."}
+            )
         return attrs
     
     def update(self, instance, validated_data):
@@ -148,12 +196,20 @@ class InvoiceSerializer(serializers.ModelSerializer):
                 item_id = item.get('id', None)
                 if item_id and item_id in existing_items:
                     line_item = existing_items[item_id]
+                    new_service = item.get('services', line_item.services)
+                    if new_service and new_service != line_item.services:
+                        item['rate'] = new_service.rate
+                        item['service_name'] = new_service.name
                     for attr, value in item.items():
                         setattr(line_item, attr, value)
                     line_item.save()
                     incoming_ids.append(item_id)
                 else:
                     item.pop('id', None)
+                    service = item.get('services')
+                    if service is not None:
+                        item['rate'] = service.rate
+                        item['service_name'] = service.name
                     LineItem.objects.create(invoice=instance, **item)
             for existing_id, existing_items in existing_items.items():
                 if existing_id not in incoming_ids:
@@ -162,14 +218,33 @@ class InvoiceSerializer(serializers.ModelSerializer):
         return instance
     
 class ClientSerializer(serializers.ModelSerializer):
+
+    status = serializers.SerializerMethodField()
+    invoice_count = serializers.SerializerMethodField()
+    total_billed = serializers.SerializerMethodField()
+
     class Meta:
         model = Client
         fields = [
-            'id', 'name', 'contact_person', 'email', 'phone', 
-            'state', 'address', 'pincode', 'is_active', 'created_at'
+            'id', 'name', 'contact_person', 'email', 'phone', 'status', 'city',
+            'state', 'address', 'pincode', 'is_active', 'created_at', 'invoice_count', 'total_billed'
         ]
         read_only_fields = ['id', 'created_at']
+
+    def get_status(self, obj):
+        return 'active' if obj.is_active else 'inactive'
     
+    def get_invoice_count(self, obj):
+        return obj.invoices.count()
+
+    def get_total_billed(self, obj):
+        from decimal import Decimal
+        return float(sum(
+            inv.total_amount or Decimal('0')
+            for inv in obj.invoices.all()
+    ))
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -189,9 +264,16 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    is_complete = serializers.SerializerMethodField()
+    email=serializers.ReadOnlyField(source='user.email')
     class Meta:
         model = Profile
-        fields = ['display_name', 'phone_number', 'upi_id', 'account_number', 'ifsc_code', 'gstin']
+        fields = ['display_name', 'phone_number', 'upi_id', 'account_number', 'email', 'ifsc_code', 'gstin', 'is_complete',
+          'street_address', 'city', 'state', 'pincode']
+
+    def get_is_complete(self, obj):
+        required_fields = [obj.bank_name, obj.account_number, obj.ifsc_code]
+        return all(field for field in required_fields)
 
     def validate_ifsc_code(self, value):
         value = value.upper()

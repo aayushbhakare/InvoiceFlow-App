@@ -1,0 +1,80 @@
+/* Reuse your existing design system variables */
+:root {
+  --black: #0D0D0B;
+  --gray-6: #6B6A66;
+  --gray-2: #E8E6E0;
+  --info-bg: #EBF4FF;
+  --info-txt: #0C447C;
+  --info-border: #B8D4F0;
+  --danger: #E24B4A;
+  --radius-lg: 12px;
+  --radius: 8px;
+  --font: system-ui, -apple-system, sans-serif;
+}
+
+/* Form Container */
+.form-container {
+  background: white;
+  padding: 40px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-2);
+  width: 100%;
+  max-width: 500px;
+  margin: 20px auto;
+}
+
+/* Field Grouping for Larger feel */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 28px; /* Increased spacing */
+}
+
+.field label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--black);
+}
+
+.field input {
+  height: 52px; /* Substantial height for easy typing */
+  padding: 0 18px;
+  font-size: 16px;
+  border: 1.5px solid var(--gray-2);
+  border-radius: var(--radius);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.field input:focus {
+  border-color: var(--black);
+}
+
+/* Error States */
+.err {
+  font-size: 12px;
+  color: var(--danger);
+  display: none;
+}
+.field.invalid .err { display: block; }
+.field.invalid input { border-color: var(--danger); }
+
+/* Buttons */
+.btn-save {
+  width: 100%;
+  height: 52px;
+  background: var(--info-bg);
+  color: var(--info-txt);
+  border: 1.5px solid var(--info-border);
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-save:hover { opacity: 0.9; }

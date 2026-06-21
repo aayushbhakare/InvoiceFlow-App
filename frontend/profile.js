@@ -1,0 +1,167 @@
+const token = localStorage.getItem('access_token');
+if (!token) {
+    window.location.href = 'landingpage.html';
+}
+
+const BASE_API_URL = 'http://127.0.0.1:8000/api';
+
+window.toast = function(msg) {
+    const el = document.getElementById('toast-el');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 3000);
+};
+
+// --- Auto-populate City & State from Pincode ---
+const pincodeInput = document.getElementById('pincode');
+if (pincodeInput) {
+    pincodeInput.addEventListener('input', async () => {
+        const val = pincodeInput.value.trim();
+        if (val.length === 6 && /^\d{6}$/.test(val)) {
+            try {
+                const res = await fetch(`https://api.postalpincode.in/pincode/${val}`);
+                const data = await res.json();
+                if (data && data[0] && data[0].Status === 'Success' && data[0].PostOffice && data[0].PostOffice.length) {
+                    const po = data[0].PostOffice[0];
+                    document.getElementById('city').value = po.District || '';
+                    document.getElementById('state').value = po.State || '';
+                }
+            } catch (error) {
+                console.error('Pincode lookup failed:', error);
+            }
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const response = await fetch(`${BASE_API_URL}/profile/`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+
+            // 1. Fill Identity Fields
+            const emailInput = document.getElementById('email');
+            const nameInput = document.getElementById('display_name');
+
+            // Try DB email first, fallback to cached email from login
+            if (emailInput) emailInput.value = data.email || localStorage.getItem('user_email') || 'Loading...';
+            if (nameInput && data.display_name) nameInput.value = data.display_name;
+
+            // 2. Fill Business Fields
+            if (data.phone_number) document.getElementById('phone_number').value = data.phone_number;
+            if (data.upi_id) document.getElementById('upi_id').value = data.upi_id;
+            if (data.account_number) document.getElementById('account_number').value = data.account_number;
+            if (data.ifsc_code) document.getElementById('ifsc_code').value = data.ifsc_code;
+            if (data.gstin) document.getElementById('gstin').value = data.gstin;
+
+            // 3. Fill Address Fields
+            if (data.pincode) document.getElementById('pincode').value = data.pincode;
+            if (data.street_address) document.getElementById('street_address').value = data.street_address;
+            if (data.city) document.getElementById('city').value = data.city;
+            if (data.state) document.getElementById('state').value = data.state;
+
+            const isComplete = data.account_number && data.ifsc_code;
+
+            const titleEl = document.querySelector('.title');
+            const subtitleEl = document.querySelector('.subtitle');
+            const saveBtn = document.getElementById('save-profile-btn');
+            const skipBtn = document.getElementById('skip-profile-btn');
+
+            if (isComplete) {
+                // --- USER HAS COMPLETED PROFILE ---
+                if (titleEl) titleEl.textContent = "Manage Business Profile";
+                if (subtitleEl) subtitleEl.textContent = "Update your billing and bank details below.";
+
+                if (saveBtn) saveBtn.textContent = "Update Profile";
+
+                if (skipBtn) {
+                    skipBtn.textContent = "Cancel / Back";
+                    skipBtn.onclick = (e) => {
+                        e.preventDefault();
+                        window.location.replace('dynamicdashboard.html'); // Go to REAL dashboard
+                    };
+                }
+            } else {
+                // --- USER HAS INCOMPLETE PROFILE ---
+                if (titleEl) titleEl.textContent = "Business Details";
+                if (subtitleEl) subtitleEl.textContent = "We need this to generate valid GST invoices.";
+
+                if (saveBtn) saveBtn.textContent = "Save Profile";
+
+                if (skipBtn) {
+                    skipBtn.textContent = "Skip for now";
+                    skipBtn.onclick = (e) => {
+                        e.preventDefault();
+                        window.location.replace('dashboard.html'); // Go to DUMMY dashboard
+                    };
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error fetching profile on load:", error);
+    }
+});
+
+document.getElementById('profile-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    document.querySelectorAll('.error-msg').forEach(el => el.classList.remove('visible'));
+
+    const payload = {
+        display_name: document.getElementById('display_name').value,
+        phone_number: document.getElementById('phone_number').value,
+        upi_id: document.getElementById('upi_id').value,
+        account_number: document.getElementById('account_number').value,
+        ifsc_code: document.getElementById('ifsc_code').value,
+        gstin: document.getElementById('gstin').value || null,
+        pincode: document.getElementById('pincode').value || null,
+        street_address: document.getElementById('street_address').value || null,
+        city: document.getElementById('city').value || null,
+        state: document.getElementById('state').value || null
+    };
+
+    const submitBtn = document.querySelector('.submit-btn');
+    submitBtn.textContent = 'Saving...';
+
+    try {
+        const response = await fetch(`${BASE_API_URL}/profile/`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            toast("Profile saved securely!");
+            setTimeout(() => {
+                window.location.href = 'dynamicdashboard.html';
+            }, 1000);
+        } else {
+            toast("Please fix the errors in the form.");
+            submitBtn.textContent = 'Save & Go to Dashboard';
+
+            for (const [field, messages] of Object.entries(data)) {
+                const inputEl = document.getElementById(field);
+                const errorEl = document.getElementById(`err-${field}`);
+
+                if (inputEl && errorEl) {
+                    inputEl.classList.add('is-invalid');
+                    errorEl.textContent = messages[0];
+                    errorEl.classList.add('visible');
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Profile Error:", error);
+        toast("Cannot connect to server.");
+        submitBtn.textContent = 'Save & Go to Dashboard';
+    }
+});

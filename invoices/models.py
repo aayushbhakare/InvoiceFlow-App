@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-
+from django.utils import timezone
 from django.db import models
 
 class Services(models.Model):
@@ -23,6 +23,7 @@ class Client(models.Model):
     pincode = models.CharField(max_length=10, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return f"{self.name} ({self.user.username})"
@@ -53,19 +54,42 @@ class Invoice(models.Model):
 
     def __str__(self):
         return f"Invoice {self.invoice_number} - {self.client_name}"
+    
+    def save(self, *args, **kwargs):
+        if not self.invoice_number:
+            now = timezone.now()
+            year = now.strftime('%Y')
+            month = now.strftime('%m')
+            
+            prefix = f"INV-{year}-{month}-"
+            
+            last_invoice = Invoice.objects.filter(
+                invoice_number__startswith=prefix
+            ).order_by('id').last()
+            
+            if last_invoice:
+                try:
+                    last_sequence_str = last_invoice.invoice_number.split('-')[-1]
+                    last_sequence = int(last_sequence_str)
+                    self.invoice_number = f"{prefix}{last_sequence + 1:04d}"
+                except (ValueError, IndexError):
+                    self.invoice_number = f"{prefix}0001"
+            else:
+                self.invoice_number = f"{prefix}0001"
+                
+        super().save(*args, **kwargs)
 
 
 class LineItem(models.Model):
     invoice = models.ForeignKey(Invoice, related_name='items', on_delete=models.CASCADE)
-    services = models.ForeignKey(Services, on_delete=models.PROTECT, null=True)
+    services = models.ForeignKey(Services, on_delete=models.SET_NULL, null=True)
     total_hours = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
+    rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    service_name = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
-        
-        if self.services:
-            return f"LineItem for {self.invoice.invoice_number} - {self.services.name}"
-        else:
-            return f"LineItem for {self.invoice.invoice_number} - [No Service Attached]"
+        name = self.service_name or (self.services.name if self.services else None)
+        return f"LineItem for {self.invoice.invoice_number} - {name or '[No Service Attached]'}"
 
 
 
@@ -85,7 +109,11 @@ class Profile(models.Model):
     ifsc_code = models.CharField(max_length=20, default="")
     upi_id = models.CharField(max_length=100, blank=True, null=True)
     company_name = models.CharField(max_length=255, blank=True, null=True) 
-    gstin = models.CharField(max_length=50, blank=True, null=True) 
+    gstin = models.CharField(max_length=50, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    pincode = models.CharField(max_length=10, blank=True, null=True)
+    street_address = models.TextField(blank=True, null=True) 
 
     def __str__(self):
         return f"{self.display_name} ({self.get_entity_type_display()})"

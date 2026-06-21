@@ -369,7 +369,7 @@ input[type="number"] { -moz-appearance: textfield; }
 
 .modal {
   position: relative;
-  background: transparent; /* Lets your separate files handle the background */
+  background: var(--white); /* Lets your separate files handle the background */
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: 0 12px 40px rgba(0,0,0,0.3);

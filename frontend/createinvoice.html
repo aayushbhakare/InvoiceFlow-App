@@ -30,11 +30,11 @@
       <div class="section">
         <div class="section-title">Invoice details</div>
         <div class="row row-2">
-          <div class="field"><label>Status</label><select id="status"><option value="draft">Draft</option><option value="pending" selected>Pending</option></select></div>
+          <div class="field"><label>Status</label><select id="status"><option value="DRAFT">Draft</option><option value="OVERDUE" selected>Overdue</option></select></div>
         </div>
         <div class="row row-2">
           <div class="field"><label>Issue date</label><input type="date" id="issue-date" onchange="updateSummary()" /></div>
-          <div class="field"><label>Due date</label><input type="date" id="due-date" onchange="updateSummary()" /></div>
+          <div class="field"><label>Due date</label><input type="date" id="due-date" /></div>
         </div>
       </div>
 
@@ -54,7 +54,13 @@
 
       <div class="section">
         <div class="section-title">Services / Line items</div>
-        <div class="services-head"><span>Service</span><span style="text-align:right">Qty</span><span style="text-align:right">Amount</span><span></span></div>
+        <div class="services-head" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 40px; gap: 10px; font-weight: 500; color: var(--gray-6); margin-bottom: 8px;">
+            <span>LineItems</span>
+            <span style="text-align:right">Rate (₹)</span>
+            <span style="text-align:right">Hours/Qty</span>
+            <span style="text-align:right">Amount</span>
+            <span></span>
+        </div>
         <div id="service-rows"></div>
         <button class="add-row-btn" onclick="addRow()"><i class="ti ti-plus"></i> Add service</button>
         
@@ -100,5 +106,6 @@
 <div class="toast" id="toast"></div>
 
 <script src="createinvoice.js"></script>
+
 </body>
 </html>

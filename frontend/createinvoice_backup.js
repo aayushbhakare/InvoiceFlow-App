@@ -28,7 +28,7 @@ async function init() {
     
     const select = document.getElementById('client-select');
     select.innerHTML = '<option value="">— Choose a client —</option>' + 
-      globalClients.filter(c => c.is_active).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      globalClients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 
   } catch(e) {
     showToast("Failed to connect to database");
@@ -73,14 +73,10 @@ function renderRows() {
       globalServices.map(s => `<option value="${s.id}" ${r.name===s.name?'selected':''}>${s.name}</option>`).join('');
     
     svcSelect.onchange = (e) => {
-        const svc = globalServices.find(s => s.id == e.target.value);
-        if(svc) { 
-            r.name = svc.name; 
-            r.price = parseFloat(svc.rate); 
-            r.service_id = svc.id; // <-- ADD THIS LINE!
-        }
-        document.getElementById("amt-" + r.id).textContent = fmt(r.qty * r.price);
-        recalc();
+      const svc = globalServices.find(s => s.id == e.target.value);
+      if(svc) { r.name = svc.name; r.price = parseFloat(svc.rate); }
+      document.getElementById("amt-" + r.id).textContent = fmt(r.qty * r.price);
+      recalc();
     };
 
   
@@ -155,6 +151,7 @@ async function saveInvoice() {
     client_name: selectedClient.name,
     client_state: selectedClient.state || '',
     client_address: selectedClient.address || '',
+    invoice_number: document.getElementById('inv-num') ? document.getElementById('inv-num').value : '',
     status: document.getElementById('status').value,
     issue_date: document.getElementById('issue-date').value,
     due_date: document.getElementById('due-date').value || document.getElementById('issue-date').value,
@@ -164,12 +161,9 @@ async function saveInvoice() {
     notes: document.getElementById('notes').value,
     
   
-    items: rows.filter(r => r.name).map(r => ({
+    lineitem_set: rows.filter(r => r.name).map(r => ({
         services: parseInt(r.service_id),
-        total_hours: parseFloat(r.qty) || 1,
-        rate: parseFloat(r.price) || 0,
-        amount: parseFloat(r.qty * r.price) || 0
-
+        total_hours: parseFloat(r.hours)
     }))
   };
 
@@ -190,9 +184,6 @@ async function saveInvoice() {
             // Optional: Tell the dashboard to refresh the invoices table
             if (window.parent.fetchInvoices) {
                 window.parent.fetchInvoices();
-            }
-            if (window.parent.fetchClients) {
-                window.parent.fetchClients();
             }
         }
     }, 1500);

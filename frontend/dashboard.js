@@ -1,3 +1,5 @@
+const BASE_API_URL = 'http://127.0.0.1:8000/api';
+
 const invoices = [
   {num:'INV-2026-041',client:'Mehta Textiles',  amount:45000,  issued:'May 15',due:'Jun 5', status:'pending'},
   {num:'INV-2026-040',client:'Sharma Builders', amount:120000, issued:'May 1', due:'May 28',status:'overdue'},
@@ -88,15 +90,24 @@ function filterInvoices() {
 }
 
 function renderClients(list) {
-  document.getElementById('client-grid').innerHTML = list.map(c => `
-    <div class="client-card" onclick="toast('Opening ${c.name} profile')">
+  document.getElementById('client-grid').innerHTML = list.map(c => {
+    const isInactive = c.status === 'inactive';
+    
+    const badgeClass = isInactive ? 'b-inactive' : 'b-active';
+    const cardOpacity = isInactive ? 'opacity: 0.6;' : 'opacity: 1;';
+    const toggleIcon = isInactive ? 'ti-rotate-clockwise' : 'ti-archive';
+    const toggleTitle = isInactive ? 'Restore to Active' : 'Mark Inactive';
+
+    return `
+    <div class="client-card" style="${cardOpacity} transition: opacity 0.3s;" onclick="toast('Opening ${c.name} profile')">
       <div class="client-avatar" style="background:${c.color};color:${c.tcolor}">${c.initials}</div>
-      <div class="client-name">${c.name}</div>
+      <div class="client-name" style="${isInactive ? 'text-decoration: line-through; color: var(--gray-5);' : ''}">${c.name}</div>
       <div class="client-meta">
         <i class="ti ti-map-pin" style="font-size:11px"></i> ${c.city}
         &nbsp;·&nbsp;
-        <span class="badge ${c.status === 'active' ? 'b-active' : 'b-inactive'}">${c.status}</span>
+        <span class="badge ${badgeClass}">${c.status.charAt(0).toUpperCase() + c.status.slice(1)}</span>
       </div>
+      
       <div class="stat-row-card">
         <div class="stat-item">
           <div class="stat-val">${c.invoices}</div>
@@ -106,14 +117,17 @@ function renderClients(list) {
           <div class="stat-val">${c.total}</div>
           <div class="stat-lbl">Billed</div>
         </div>
-        <div class="stat-item">
-          <button class="icon-btn" style="width:24px;height:24px" onclick="event.stopPropagation();openModal('invoice')" title="New invoice">
-            <i class="ti ti-plus" style="font-size:12px"></i>
+        <button class="icon-btn" style="width:28px;height:28px" onclick="event.stopPropagation(); openClientEdit(${c.id})" title="Edit client">
+            <i class="ti ti-pencil" style="font-size:14px"></i>
+        </button>
+        <div class="stat-item" style="display:flex; align-items:center; justify-content:center;">
+          <button class="icon-btn" style="width:26px;height:26px" onclick="event.stopPropagation(); toggleDummyClientStatus('${c.name}')" title="${toggleTitle}">
+            <i class="ti ${toggleIcon}" style="font-size:13px"></i>
           </button>
-          <div class="stat-lbl">Invoice</div>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function filterClients() {
@@ -159,7 +173,15 @@ function showPage(name, btn) {
 }
 
 function openModal(type) { closeAllModals(); document.getElementById('modal-' + type).classList.add('open'); }
-function closeModal(type) { document.getElementById('modal-' + type).classList.remove('open'); }
+
+function closeModal(type) {
+    document.getElementById('modal-' + type).classList.remove('open');
+    if (type === 'client') {
+        const iframe = document.querySelector('#modal-client iframe');
+        if (iframe) iframe.src = 'createclient.html';
+    }
+}
+
 function closeAllModals() { document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('open')); }
 
 document.querySelectorAll('.modal-backdrop').forEach(m => {
@@ -220,6 +242,8 @@ async function fetchPincodeData(pincode) {
     }
 }
 
+
+
 // Toggle the dropdown
 function toggleProfileMenu() {
   document.getElementById('profile-dropdown').classList.toggle('show');
@@ -241,7 +265,149 @@ function logout() {
   window.location.href = 'landingpage.html'; // Redirect to login
 }
 
+function toggleProfileMenu() {
+    const dropdown = document.getElementById('profile-dropdown');
+    // Toggle between none and block
+    dropdown.style.display = (dropdown.style.display === 'block') ? 'none' : 'block';
+}
+
+function openClientEdit(clientId) {
+    closeAllModals();
+    document.getElementById('modal-client').classList.add('open');
+    const iframe = document.querySelector('#modal-client iframe');
+    iframe.src = `createclient.html?id=${clientId}`;
+}
+
+function toggleDummyClientStatus(clientName) {
+    const client = clients.find(c => c.name === clientName);
+    
+    if (client) {
+        client.status = client.status === 'active' ? 'inactive' : 'active';
+        toast(`Client marked as ${client.status}`);
+        filterClients();
+    }
+}
+
+// Optional: Close the menu when clicking outside
+window.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('profile-dropdown');
+    const avatar = document.querySelector('.avatar');
+    if (!avatar.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.style.display = 'none';
+    }
+});
+
+// async function checkProfileCompletion() {
+//     try {
+//         const response = await fetch(`${BASE_API_URL}/profile/`, {
+//             method: 'GET', 
+//             headers: { 
+//                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+//                 'Content-Type': 'application/json'
+//             }
+//         });
+
+//         if (response.ok) {
+//             const profile = await response.json();
+            
+//             const isMissingData = !profile.account_number || !profile.ifsc_code;
+            
+//             if (isMissingData) {
+//                 console.warn("Profile incomplete. Redirecting...");
+//                 toast("Please complete your profile to access all features.");
+//                 return false;
+//             }
+//             return true;
+//         }
+//     } catch (error) {
+//         console.error("Gatekeeper error:", error);
+//     }
+// }
+
+async function checkProfileCompletion() {
+    try {
+        const response = await fetch(`${BASE_API_URL}/profile/`, {
+            method: 'GET', 
+            headers: { 
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            const profile = await response.json();
+            
+            // --- 1. INSTANT UI HYDRATION (Directly from Django) ---
+            const name = profile.display_name || (profile.email ? profile.email.split('@')[0] : 'User');
+            const email = profile.email || '';
+            const initials = name.substring(0, 2).toUpperCase();
+
+            const navAvatar = document.getElementById('nav-avatar');
+            const navName = document.getElementById('nav-name');
+            const navEmail = document.getElementById('nav-email');
+
+            if (navAvatar) navAvatar.textContent = initials;
+            if (navName) navName.textContent = name;
+            if (navEmail) navEmail.textContent = email;
+            // ------------------------------------------------------
+
+            // 2. Check if they need to finish onboarding
+            const isMissingData = !profile.account_number || !profile.ifsc_code;
+            if (isMissingData) {
+                console.warn("Profile incomplete. User is in Demo Mode.");
+                return false;
+            }
+            return true;
+        }
+    } catch (error) {
+        console.error("Gatekeeper error:", error);
+    }
+}
+
+
+async function protectedOpenModal(type) {
+    const isComplete = await checkProfileCompletion();
+    
+    if (!isComplete) {
+        toast("Please complete your profile to add your own data!");
+        
+        setTimeout(() => { 
+            window.location.href = 'profile.html'; 
+        }, 2500);
+        
+        return;
+    }
+    
+    openModal(type);
+}
+
+async function initializeDashboard() {
+    const isPersonalizedMode = await checkProfileCompletion();
+
+    if (isPersonalizedMode) {
+        console.log("Profile complete: Loading Personalized Dashboard");
+        
+        // 1. Wipe the hardcoded demo data clean
+        document.getElementById('service-tbody').innerHTML = '';
+        document.getElementById('inv-tbody').innerHTML = '';
+        // document.getElementById('client-grid').innerHTML = '';
+        
+        // 2. Fetch the user's real data from the API
+        // loadRealServices();
+        // loadRealInvoices();
+        
+    } else {
+        console.log("Profile incomplete: Running in Demo Mode");
+       
+    }
+}
+
+document.addEventListener("DOMContentLoaded", initializeDashboard);
+
+
 // Initialization
+checkProfileCompletion();
+
 renderInvoices(invoices);
 renderClients(clients);
 renderReportClients();

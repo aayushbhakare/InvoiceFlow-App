@@ -7,85 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-:root {
-  --black: #0D0D0B;
-  --gray-8: #333333;
-  --gray-6: #6B6A66;
-  --gray-2: #E8E6E0;
-  --gray-1: #F4F3EF;
-  --white: #FAFAF8;
-  --red-text: #D32F2F;
-  --radius: 8px;
-  --font: 'Geist', system-ui, sans-serif;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font); }
-body { background: var(--gray-1); color: var(--black); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-
-.container {
-  background: var(--white);
-  padding: 48px;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 500px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.04);
-}
-
-.title { font-size: 24px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.5px; }
-.subtitle { font-size: 14px; color: var(--gray-6); margin-bottom: 32px; }
-
-.field { margin-bottom: 20px; }
-.field label { display: block; font-size: 13px; font-weight: 500; color: var(--gray-8); margin-bottom: 8px; }
-.field input {
-  width: 100%; height: 44px; background: var(--white); border: 1px solid var(--gray-2);
-  border-radius: var(--radius); padding: 0 14px; font-size: 14px; outline: none; transition: border-color 0.2s;
-}
-.field input:focus { border-color: var(--black); }
-
-.field input.is-invalid {
-    border-color: var(--red-text);
-    background-color: #FFFAFA;
-}
-.error-msg {
-    color: var(--red-text);
-    font-size: 12px;
-    margin-top: 6px;
-    display: none;
-}
-.error-msg.visible {
-    display: block;
-}
-
-.submit-btn {
-  width: 100%; height: 44px; background: var(--black); color: var(--white);
-  border: none; border-radius: var(--radius); font-weight: 500; font-size: 15px; cursor: pointer; margin-top: 12px;
-}
-
-.skip-text {
-    text-align: center;
-    margin-top: 20px;
-    font-size: 13px;
-}
-
-.skip-text a {
-    color: var(--gray-6);
-    text-decoration: none;
-    transition: color 0.2s ease;
-}
-
-.skip-text a:hover {
-    color: var(--black);
-    text-decoration: underline;
-}
-
-.toast {
-  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(16px);
-  background: var(--black); color: var(--white); font-size: 13px; padding: 10px 20px;
-  border-radius: 100px; opacity: 0; pointer-events: none; transition: opacity .25s, transform .3s; z-index: 999;
-}
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-</style>
+<link rel="stylesheet" href="profile.css">
 </head>
 <body>
 
@@ -95,6 +17,11 @@ body { background: var(--gray-1); color: var(--black); min-height: 100vh; displa
 
     <form id="profile-form">
         <div class="field">
+            <label>Registered Email</label>
+            <input type="email" id="email" placeholder="Loading..." readonly style="background-color: #f1f3f5; cursor: not-allowed; color: var(--gray-6);">
+        </div>
+
+        <div class="field">
             <label>Billing Name (Your Name or Company Name)</label>
             <input type="text" id="display_name" placeholder="E.g. Mehta Consulting" required>
             <div class="error-msg" id="err-display_name"></div>
@@ -102,7 +29,7 @@ body { background: var(--gray-1); color: var(--black); min-height: 100vh; displa
 
         <div class="field">
             <label>Mobile Number</label>
-            <input type="text" id="phone_number" placeholder="9876543210" required>
+            <input type="text" id="phone_number" placeholder="98765XXXXX" required>
             <div class="error-msg" id="err-phone_number"></div>
         </div>
 
@@ -114,7 +41,7 @@ body { background: var(--gray-1); color: var(--black); min-height: 100vh; displa
 
         <div class="field">
             <label>Bank Account Number</label>
-            <input type="password" id="account_number" placeholder="Enter Account Number" required>
+            <input type="text" id="account_number" placeholder="Enter Account Number" required>
             <div class="error-msg" id="err-account_number"></div>
         </div>
 
@@ -130,10 +57,35 @@ body { background: var(--gray-1); color: var(--black); min-height: 100vh; displa
             <div class="error-msg" id="err-gstin"></div>
         </div>
 
-        <button type="submit" class="submit-btn">Save & Go to Dashboard</button>
+        <div class="field">
+            <label>Pincode</label>
+            <input type="text" id="pincode" placeholder="411001" maxlength="6" inputmode="numeric">
+            <div class="error-msg" id="err-pincode"></div>
+        </div>
 
-        <p class="skip-text">
-            <a href="dashboard.html" onclick="toast('Skipping profile setup...')">Skip for now, I'll complete this later</a>
+        <div class="field">
+            <label>Street Address</label>
+            <input type="text" id="street_address" placeholder="Office / Shop No, Street">
+            <div class="error-msg" id="err-street_address"></div>
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label>City</label>
+                <input type="text" id="city" placeholder="City">
+                <div class="error-msg" id="err-city"></div>
+            </div>
+            <div class="field">
+                <label>State</label>
+                <input type="text" id="state" placeholder="State">
+                <div class="error-msg" id="err-state"></div>
+            </div>
+        </div>
+
+        <button type="submit" id="save-profile-btn" class="submit-btn">Save & Go to Dashboard</button>
+
+        <p class="skip-text" id="skip-wrapper">
+            <a href="dashboard.html" id="skip-profile-btn">Skip for now, I'll complete this later</a>
         </p>
 
     </form>
@@ -141,76 +93,6 @@ body { background: var(--gray-1); color: var(--black); min-height: 100vh; displa
 
 <div id="toast-el" class="toast"></div>
 
-<script>
-const token = localStorage.getItem('access_token');
-if (!token) {
-    window.location.href = 'landingpage.html';
-}
-
-const BASE_API_URL = 'http://127.0.0.1:8000/api';
-
-window.toast = function(msg) {
-    const el = document.getElementById('toast-el');
-    el.textContent = msg; el.classList.add('show');
-    clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 3000);
-};
-
-document.getElementById('profile-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-    document.querySelectorAll('.error-msg').forEach(el => el.classList.remove('visible'));
-
-    const payload = {
-        display_name: document.getElementById('display_name').value,
-        phone_number: document.getElementById('phone_number').value,
-        upi_id: document.getElementById('upi_id').value,         
-        account_number: document.getElementById('account_number').value,
-        ifsc_code: document.getElementById('ifsc_code').value,
-        gstin: document.getElementById('gstin').value || null
-    };
-
-    const submitBtn = document.querySelector('.submit-btn');
-    submitBtn.textContent = 'Saving...';
-
-    try {
-        const response = await fetch(`${BASE_API_URL}/profile/`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` 
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            toast("Profile saved securely!");
-            setTimeout(() => {
-                window.location.href = 'dashboard.html';
-            }, 1000);
-        } else {
-            toast("Please fix the errors in the form.");
-            submitBtn.textContent = 'Save & Go to Dashboard';
-
-            for (const [field, messages] of Object.entries(data)) {
-                const inputEl = document.getElementById(field);
-                const errorEl = document.getElementById(`err-${field}`);
-                
-                if (inputEl && errorEl) {
-                    inputEl.classList.add('is-invalid');
-                    errorEl.textContent = messages[0];
-                    errorEl.classList.add('visible');
-                }
-            }
-        }
-    } catch (error) {
-        console.error("Profile Error:", error);
-        toast("Cannot connect to server.");
-        submitBtn.textContent = 'Save & Go to Dashboard';
-    }
-});
-</script>
+<script src="profile.js"></script>
 </body>
 </html>

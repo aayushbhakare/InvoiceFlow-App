@@ -1,3 +1,31 @@
+const BASE_API_URL = 'http://127.0.0.1:8000/api';
+const urlParams  = new URLSearchParams(window.location.search);
+const editId     = urlParams.get('id');
+const isEditMode = !!editId;
+
+window.addEventListener('DOMContentLoaded', async () => {
+    if (!isEditMode) return;
+    document.querySelector('.card-title').textContent = 'Edit client';
+    document.querySelector('.card-sub').textContent   = 'Update client details below';
+    document.querySelector('.btn-save').innerHTML     = '<i class="ti ti-device-floppy"></i> Save changes';
+
+    const token = localStorage.getItem('access_token');
+    try {
+        const res = await fetch(`${BASE_API_URL}/clients/${editId}/`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const c = await res.json();
+        document.getElementById('biz-name').value  = c.name           || '';
+        document.getElementById('contact').value   = c.contact_person || '';
+        document.getElementById('mobile').value    = c.phone          || '';
+        document.getElementById('email').value     = c.email          || '';
+        document.getElementById('c-address').value = c.address        || '';
+        document.getElementById('c-pincode').value = c.pincode        || '';
+        document.getElementById('c-city').value    = c.city           || '';
+        document.getElementById('c-state').value   = c.state          || '';
+    } catch { showToast('Network error loading client'); }
+});
+
 function chk(id, val) {
   const f = document.getElementById(id);
   f.classList.toggle('invalid', val.trim().length === 0);
@@ -49,7 +77,17 @@ async function fetchPincodeData(pincode) {
   }
 }
 
-function submitForm() {
+async function submitForm() {
+  
+  if (window.parent && window.parent.checkProfileCompletion) {
+    const isComplete = await window.parent.checkProfileCompletion();
+    
+    if (!isComplete) {
+      window.parent.toast("Please complete your profile to save data!");
+      return; 
+    }
+  }
+
   let missing = false;
   const required = {
     'f-biz':     document.getElementById('biz-name'),
@@ -57,26 +95,78 @@ function submitForm() {
     'f-mobile':  document.getElementById('mobile'),
     'f-email':   document.getElementById('email'),
   };
+  
   Object.entries(required).forEach(([fid, inp]) => {
     if (!inp.value.trim()) {
       document.getElementById(fid).classList.add('invalid');
       missing = true;
     }
   });
+  
   if (missing) {
     showToast('Please fill in all required fields');
     return;
   }
-  const name = document.getElementById('biz-name').value.trim();
-  showToast(name + ' added successfully');
-  
-  setTimeout(() => {
-    window.location.href = 'dashboard.html';
-  }, 1800);
+
+  const city    = document.getElementById('c-city').value.trim();
+  const state   = document.getElementById('c-state').value.trim();
+  const street  = document.getElementById('c-address').value.trim();
+  const pincode = document.getElementById('c-pincode') ? document.getElementById('c-pincode').value.trim() : '';
+
+  const payload = {
+    name:            document.getElementById('biz-name').value.trim(),
+    contact_person:  document.getElementById('contact').value.trim(),
+    email:           document.getElementById('email').value.trim(),
+    phone:           document.getElementById('mobile').value.trim(),
+    address:         street,
+    city:            city,
+    state:           state,
+    pincode:         pincode,
+};
+
+  try {
+    const token = localStorage.getItem('access_token');
+    const url    = isEditMode ? `${BASE_API_URL}/clients/${editId}/` : `${BASE_API_URL}/clients/`;
+    const method = isEditMode ? 'PATCH' : 'POST';
+    const response = await fetch(url, {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+    }); 
+    
+
+    if (response.ok) {
+      const name = document.getElementById('biz-name').value.trim();
+      showToast(isEditMode ? 'Client updated successfully!' : name + ' added successfully!');
+      
+      setTimeout(() => {
+        if (window.parent && window.parent.closeModal) {
+          window.parent.closeModal('client'); 
+          
+          if (window.parent.fetchClients) {
+            window.parent.fetchClients(); 
+          }
+        }
+      }, 1500);
+
+    } else {
+      const errorData = await response.json();
+      console.error(errorData);
+      showToast('Failed to save client');
+    }
+  } catch (error) {
+    console.error("Error saving client:", error);
+    showToast('Network error');
+  }
 }
 
 function resetForm() {
-  window.location.href = 'dashboard.html';
+  if (window.parent && window.parent.closeModal) {
+    window.parent.closeModal('client');
+  }
 }
 
 function showToast(msg) {
@@ -86,3 +176,4 @@ function showToast(msg) {
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove('show'), 2600);
 }
+

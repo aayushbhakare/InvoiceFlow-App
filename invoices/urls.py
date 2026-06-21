@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import InvoiceViewSet, LineItemViewSet, ServicesViewSet, download_invoice_pdf
+from .views import InvoiceViewSet, LineItemViewSet, ServiceViewSet, download_invoice_pdf, ClientViewSet
 from .views import RegisterView, ProfileManageView
 from invoices import views
  
@@ -9,7 +9,8 @@ router = DefaultRouter()
 
 router.register(r'invoices', InvoiceViewSet, basename='invoice')
 router.register(r'line-items', LineItemViewSet, basename='lineitem')
-router.register(r'services', ServicesViewSet, basename='service')
+router.register(r'services', ServiceViewSet, basename='service')
+router.register(r'clients', ClientViewSet, basename='clients')
 
 
 urlpatterns = [
