@@ -11,7 +11,7 @@ window.toast = function(msg) {
     clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 3000);
 };
 
-// --- Auto-populate City & State from Pincode ---
+
 const pincodeInput = document.getElementById('pincode');
 if (pincodeInput) {
     pincodeInput.addEventListener('input', async () => {
@@ -42,26 +42,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (response.ok) {
             const data = await response.json();
 
-            // 1. Fill Identity Fields
             const emailInput = document.getElementById('email');
             const nameInput = document.getElementById('display_name');
 
-            // Try DB email first, fallback to cached email from login
             if (emailInput) emailInput.value = data.email || localStorage.getItem('user_email') || 'Loading...';
             if (nameInput && data.display_name) nameInput.value = data.display_name;
 
-            // 2. Fill Business Fields
             if (data.phone_number) document.getElementById('phone_number').value = data.phone_number;
             if (data.upi_id) document.getElementById('upi_id').value = data.upi_id;
             if (data.account_number) document.getElementById('account_number').value = data.account_number;
             if (data.ifsc_code) document.getElementById('ifsc_code').value = data.ifsc_code;
             if (data.gstin) document.getElementById('gstin').value = data.gstin;
 
-            // 3. Fill Address Fields
             if (data.pincode) document.getElementById('pincode').value = data.pincode;
             if (data.street_address) document.getElementById('street_address').value = data.street_address;
             if (data.city) document.getElementById('city').value = data.city;
             if (data.state) document.getElementById('state').value = data.state;
+
+            if (data.razorpay_key_id) document.getElementById('razorpay_key_id').value = data.razorpay_key_id;
+            if (data.razorpay_key_secret) document.getElementById('razorpay_key_secret').value = data.razorpay_key_secret;
+
 
             const isComplete = data.account_number && data.ifsc_code;
 
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     };
                 }
             } else {
-                // --- USER HAS INCOMPLETE PROFILE ---
+            
                 if (titleEl) titleEl.textContent = "Business Details";
                 if (subtitleEl) subtitleEl.textContent = "We need this to generate valid GST invoices.";
 
@@ -121,7 +121,9 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
         pincode: document.getElementById('pincode').value || null,
         street_address: document.getElementById('street_address').value || null,
         city: document.getElementById('city').value || null,
-        state: document.getElementById('state').value || null
+        state: document.getElementById('state').value || null,
+        razorpay_key_id: document.getElementById('razorpay_key_id') ? document.getElementById('razorpay_key_id').value : null,
+        razorpay_key_secret: document.getElementById('razorpay_key_secret') ? document.getElementById('razorpay_key_secret').value : null
     };
 
     const submitBtn = document.querySelector('.submit-btn');

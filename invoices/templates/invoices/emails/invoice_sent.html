@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.6; margin: 0; padding: 0; background: #f9fafb; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; }
+        .header { background: #1D9E75; padding: 32px; text-align: center; }
+        .header h1 { color: #ffffff; margin: 0; font-size: 20px; font-weight: 600; }
+        .body { padding: 32px; }
+        .greeting { font-size: 16px; margin-bottom: 16px; }
+        .details-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .details-table td { padding: 10px 14px; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+        .details-table td:first-child { color: #6b7280; font-weight: 500; width: 40%; }
+        .details-table td:last-child { color: #111827; font-weight: 600; text-align: right; }
+        .amount-row td { border-top: 2px solid #1D9E75; background: #f0fdf8; font-size: 16px; }
+        .note { font-size: 13px; color: #6b7280; margin-top: 24px; line-height: 1.7; }
+        .footer { background: #f9fafb; padding: 20px 32px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Invoice from {{ sender_name }}</h1>
+        </div>
+        <div class="body">
+            <div class="greeting">Hi {{ client_name }},</div>
+            <p>Please find attached the invoice <strong>#{{ invoice_number }}</strong> for your review.</p>
+
+            <table class="details-table">
+                <tr>
+                    <td>Invoice Number</td>
+                    <td>#{{ invoice_number }}</td>
+                </tr>
+                <tr>
+                    <td>Issue Date</td>
+                    <td>{{ issue_date }}</td>
+                </tr>
+                <tr>
+                    <td>Due Date</td>
+                    <td>{{ due_date }}</td>
+                </tr>
+                <tr class="amount-row">
+                    <td>Amount Due</td>
+                    <td>₹{{ total_amount }}</td>
+                </tr>
+            </table>
+
+            <p>The invoice PDF is attached to this email.</p>
+            
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="http://127.0.0.1:5500/frontend/pay.html?invoice={{ invoice_id }}" style="background: #1D9E75; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; display: inline-block;">Pay Now Securely</a>
+            </div>
+
+            <div class="note">
+                If you have any questions regarding this invoice, please reply to this email directly.
+            </div>
+        </div>
+        <div class="footer">
+            Sent via InvoiceFlow
+        </div>
+    </div>
+</body>
+</html>

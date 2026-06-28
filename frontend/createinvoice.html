@@ -15,7 +15,7 @@
     <div class="breadcrumb"><i class="ti ti-chevron-right"></i><span>New Invoice</span></div>
   </div>
   <div class="topbar-actions">
-    <button class="btn-primary" onclick="saveInvoice()" style="margin:0; padding: 8px 16px;"><i class="ti ti-send"></i> Save & Send</button>
+    <button class="btn-primary" onclick="saveAndSendInvoice()" style="margin:0; padding: 8px 16px;"><i class="ti ti-send"></i> Save & Send</button>
   </div>
 </div>
 
@@ -29,9 +29,6 @@
     <div>
       <div class="section">
         <div class="section-title">Invoice details</div>
-        <div class="row row-2">
-          <div class="field"><label>Status</label><select id="status"><option value="DRAFT">Draft</option><option value="OVERDUE" selected>Overdue</option></select></div>
-        </div>
         <div class="row row-2">
           <div class="field"><label>Issue date</label><input type="date" id="issue-date" onchange="updateSummary()" /></div>
           <div class="field"><label>Due date</label><input type="date" id="due-date" /></div>
@@ -97,6 +94,59 @@
         <div class="sum-indent" id="igst-row" style="display:none"><span>IGST 18%</span><span id="s-igst">₹0</span></div>
 
         <div class="total-block"><span>Total due</span><span id="s-total">₹0</span></div>
+        <div class="recurring-section" style="margin: 16px 0; padding: 16px; background: #f8faf9; border-radius: 10px; border: 1px solid #e5e7eb;">
+            
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="font-weight:600; font-size:13px; color:var(--text-primary);">Recurring Invoice</div>
+                <label style="position:relative; display:inline-block; width:40px; height:20px; cursor:pointer; margin:0;">
+                    <input type="checkbox" id="is-recurring" onchange="toggleRecurring()" style="opacity:0; width:0; height:0; position:absolute; appearance:none;">
+                    <span id="toggle-track" style="position:absolute; top:0; left:0; right:0; bottom:0; background:#ccc; border-radius:20px; transition:.3s;"></span>
+                    <span id="toggle-dot" style="position:absolute; height:14px; width:14px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.3s;"></span>
+                </label>
+            </div>
+
+            <div id="recurring-options" style="display:none; margin-top:14px;">
+
+                <div style="display:flex; gap:10px; margin-bottom:14px;">
+                    <div style="flex:1;">
+                        <label style="font-size:11px; font-weight:500; color:var(--text-secondary); display:block; margin-bottom:4px;">Frequency</label>
+                        <select id="recurring-freq" style="width:100%; padding:7px 8px; border:1px solid var(--border); border-radius:6px; font-size:12px; background:white; appearance:auto; -webkit-appearance:auto;">
+                            <option value="WEEKLY">Weekly</option>
+                            <option value="MONTHLY" selected>Monthly</option>
+                            <option value="QUARTERLY">Quarterly</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label style="font-size:11px; font-weight:500; color:var(--text-secondary); display:block; margin-bottom:4px;">Start Date</label>
+                        <input type="date" id="recurring-start" style="width:100%; padding:7px 8px; border:1px solid var(--border); border-radius:6px; font-size:12px; box-sizing:border-box;">
+                    </div>
+                </div>
+
+                <label style="font-size:11px; font-weight:500; color:var(--text-secondary); display:block; margin-bottom:8px;">Stops after</label>
+                
+                <div style="display:flex; flex-direction:column; gap:10px; font-size:12px;">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-primary); margin:0; font-weight:normal;">
+                    
+                        <input type="radio" name="recurring-end" value="occurrences" checked onchange="toggleEndType()" style="width:14px; height:14px; margin:0; padding:0; appearance:radio; -webkit-appearance:radio; background:none; border:none;">
+                        <span>After</span>
+                        <input type="number" id="recurring-occurrences" value="6" min="1" max="52" style="width:48px; padding:4px; border:1px solid var(--border); border-radius:4px; text-align:center; font-size:12px;">
+                        <span>times</span>
+                    </label>
+                    
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-primary); margin:0; font-weight:normal;">
+                        <input type="radio" name="recurring-end" value="end_date" onchange="toggleEndType()" style="width:14px; height:14px; margin:0; padding:0; appearance:radio; -webkit-appearance:radio; background:none; border:none;">
+                        <span>Until</span>
+                        <input type="date" id="recurring-end-date" disabled style="padding:4px; border:1px solid var(--border); border-radius:4px; font-size:12px; flex:1;">
+                    </label>
+                    
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-primary); margin:0; font-weight:normal;">
+                        <input type="radio" name="recurring-end" value="forever" onchange="toggleEndType()" style="width:14px; height:14px; margin:0; padding:0; appearance:radio; -webkit-appearance:radio; background:none; border:none;">
+                        <span>Repeat forever</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
         <button class="btn-primary" onclick="saveInvoice()"><i class="ti ti-check"></i> Save Invoice</button>
       </div>
     </div>

@@ -82,6 +82,21 @@
             </div>
         </div>
 
+        <h2 class="title" style="margin-top: 32px; font-size: 18px;">Payment Gateway (Optional)</h2>
+        <p class="subtitle" style="margin-bottom: 24px;">Enable Razorpay to let clients pay via UPI/Card directly from the invoice.</p>
+
+        <div class="field">
+            <label>Razorpay Key ID</label>
+            <input type="text" id="razorpay_key_id" placeholder="rzp_test_...">
+            <div class="error-msg" id="err-razorpay_key_id"></div>
+        </div>
+
+        <div class="field">
+            <label>Razorpay Key Secret</label>
+            <input type="password" id="razorpay_key_secret" placeholder="Enter Secret Key">
+            <div class="error-msg" id="err-razorpay_key_secret"></div>
+        </div>
+
         <button type="submit" id="save-profile-btn" class="submit-btn">Save & Go to Dashboard</button>
 
         <p class="skip-text" id="skip-wrapper">

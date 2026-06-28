@@ -323,7 +323,9 @@ function renderInvoices(list) {
             <td>
                 <div style="display:flex;gap:4px">
                     <button class="icon-btn" onclick="event.stopPropagation();currentSelectedInvoiceId=${inv.id};doAction('download')" title="Download"><i class="ti ti-download"></i></button>
-                    <button class="icon-btn" onclick="event.stopPropagation();toast('Reminder sent')" title="Remind"><i class="ti ti-bell"></i></button>
+                    <button class="icon-btn" onclick="event.stopPropagation();currentSelectedInvoiceId=${inv.id};doAction('reminder')" title="Send/Remind"><i class="ti ti-bell"></i></button>
+                    <button class="icon-btn" onclick="event.stopPropagation(); closeModal('detail'); openModal('invoice'); document.querySelector('#modal-invoice iframe').src = 'createinvoice.html?id=${inv.id}';" title="Edit"><i class="ti ti-pencil"></i></button>
+
                 </div>
             </td>
         </tr>`;
@@ -544,7 +546,17 @@ function openInvoiceDetail(id, num, client, amount, status, due) {
                 </tbody>
             </table>`;
 }
+    const editBtn = document.getElementById('detail-edit-btn');
+    if (editBtn) {
+        editBtn.onclick = function() {
+            closeModal('detail');
+            openModal('invoice');
+            const iframe = document.querySelector('#modal-invoice iframe');
+            iframe.src = `createinvoice.html?id=${id}`;
+        };
+    }
     openModal('detail');
+    fetchTimeline(id);
 }
 
 async function doAction(type) {
@@ -599,7 +611,6 @@ async function doAction(type) {
         
         try {
             const response = await fetch(`${BASE_API_URL}/invoices/${currentSelectedInvoiceId}/`, {
-                // We use PATCH because we are only updating one single field (the status)
                 method: 'PATCH', 
                 headers: { 
                     'Content-Type': 'application/json',
@@ -611,9 +622,6 @@ async function doAction(type) {
             if (response.ok) {
                 toast("Invoice marked as paid! Revenue updated.");
                 closeModal('detail');
-                
-                // This is the magic line! It asks Django for the fresh invoice list,
-                // which automatically recalculates the dashboard math and charts instantly!
                 fetchInvoices(); 
             } else {
                 const err = await response.json();
@@ -628,7 +636,91 @@ async function doAction(type) {
     }
     
     else if (type === 'reminder') {
-        toast("Reminder sent");
+        if (!currentSelectedInvoiceId) return;
+
+        toast("Sending...");
+
+        try {
+            const response = await fetch(`${BASE_API_URL}/invoices/${currentSelectedInvoiceId}/send/`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                toast(data.message || "Sent successfully!");
+                closeModal('detail');
+                fetchInvoices();
+            } else {
+                const err = await response.json();
+                toast(err.error || "Failed to send.");
+            }
+        } catch (error) {
+            console.error("Send Error:", error);
+            toast("Network error. Could not send.");
+        }
+    }
+}
+
+async function fetchTimeline(invoiceId) {
+    const container = document.getElementById('timeline-entries');
+    container.innerHTML = '<div style="color:var(--gray-6); padding:8px 0;">Loading...</div>';
+
+    try {
+        const response = await fetch(`${BASE_API_URL}/invoices/${invoiceId}/timeline/`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        });
+
+        if (!response.ok) {
+            container.innerHTML = '<div style="color:var(--gray-6); padding:8px 0;">Unable to load timeline.</div>';
+            return;
+        }
+
+        const logs = await response.json();
+
+        if (logs.length === 0) {
+            container.innerHTML = '<div style="color:var(--gray-6); padding:8px 0;">No activity yet.</div>';
+            return;
+        }
+
+        const iconMap = {
+            'INVOICE_SENT': { icon: 'ti-send', color: '#1D9E75' },
+            'REMINDER_BEFORE_DUE': { icon: 'ti-bell', color: '#f59e0b' },
+            'REMINDER_ON_DUE': { icon: 'ti-bell-ringing', color: '#f59e0b' },
+            'REMINDER_AFTER_DUE': { icon: 'ti-alert-triangle', color: '#ef4444' },
+            'PAYMENT_RECEIVED': { icon: 'ti-circle-check', color: '#1D9E75' },
+            'STATUS_CHANGED': { icon: 'ti-refresh', color: '#6b7280' },
+        };
+
+        container.innerHTML = logs.map(log => {
+            const info = iconMap[log.event_type] || { icon: 'ti-info-circle', color: '#6b7280' };
+            const time = new Date(log.timestamp).toLocaleString('en-IN', {
+                day: 'numeric', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+            });
+            const statusBadge = log.delivery_status === 'FAILED'
+                ? `<span style="color:#ef4444; font-size:11px; margin-left:6px;">✗ Failed</span>`
+                : '';
+
+            return `
+                <div style="display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid #f3f4f6;">
+                    <i class="ti ${info.icon}" style="color:${info.color}; font-size:16px; margin-top:2px;"></i>
+                    <div style="flex:1;">
+                        <div style="font-weight:500; color:#111827;">
+                            ${log.event_display}${statusBadge}
+                        </div>
+                        <div style="font-size:11px; color:#9ca3af; margin-top:2px;">
+                            ${time}${log.recipient_email ? ' · ' + log.recipient_email : ''}
+                        </div>
+                        ${log.error_message ? `<div style="font-size:11px; color:#ef4444; margin-top:2px;">${log.error_message}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error("Timeline Error:", error);
+        container.innerHTML = '<div style="color:var(--gray-6); padding:8px 0;">Failed to load timeline.</div>';
     }
 }
 

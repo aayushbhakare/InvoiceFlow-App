@@ -1,8 +1,7 @@
-import profile
 
 from rest_framework import serializers
 from decimal import Decimal
-from .models import Client, Invoice, LineItem, Services, Profile
+from .models import Client, Invoice, LineItem, Services, Profile, NotificationLog, Payment, RecurringInvoice
 import re
 from django.contrib.auth.models import User
 import requests
@@ -16,8 +15,8 @@ class ServicesSerializer(serializers.ModelSerializer):
 
 class LineItemSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
-    service_name = serializers.CharField(read_only=True)
-    service_rate = serializers.DecimalField(source='rate', read_only=True, max_digits=10, decimal_places=2)
+    service_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    service_rate = serializers.DecimalField(source='rate', required=False, allow_null=True, max_digits=10, decimal_places=2)
     line_total = serializers.SerializerMethodField()
 
     class Meta:
@@ -40,6 +39,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
     cgst = serializers.SerializerMethodField()
     sgst = serializers.SerializerMethodField()
     igst = serializers.SerializerMethodField()
+    amount_paid = serializers.SerializerMethodField()
+    balance_due = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Invoice
@@ -48,7 +50,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'subtotal', 'discount_amount', 'total_amount', 'cgst', 'sgst',
             'igst' , 'taxable_amount',
             'client_address', 'client_state', 'tax_rate',
-            'bank_details', 'notes', 'client'
+            'bank_details', 'notes', 'client', 'amount_paid', 'balance_due'
             ]
         read_only_fields = ['invoice_number']
 
@@ -95,6 +97,15 @@ class InvoiceSerializer(serializers.ModelSerializer):
             taxable = self.get_taxable_amount(obj)
             return round(taxable * (float(obj.tax_rate) / 100), 2)
         return 0.00
+    
+    def get_amount_paid(self, obj):
+        return float(sum(p.amount for p in obj.payments.all()))
+
+    def get_balance_due(self, obj):
+        total = self.get_total_amount(obj)
+        paid = self.get_amount_paid(obj)
+        return round(total - paid, 2)
+
 
     def get_total_amount(self, obj):
         taxable = self.get_taxable_amount(obj)
@@ -121,9 +132,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
         
         request = self.context.get('request')
         user = getattr(request, 'user', None) if request else None
-        # if request and hasattr(request, 'user'):
-        #     user = request.user
-        #     profile = getattr(user, 'profile', None) 
+
         if not user:
             raise serializers.ValidationError("Cannot create invoice without an authenticated user.")
             
@@ -135,26 +144,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             if not validated_data.get('notes'):
                 validated_data['notes'] = getattr(profile, 'default_notes', '')
 
-        # --- 2. Auto-Generate Invoice Number ---
-        current_year = datetime.datetime.now().year
-        invoice_count = Invoice.objects.filter(user=user, issue_date__year=current_year).count() + 1
-        validated_data['invoice_number'] = f"INV-{current_year}-{invoice_count:04d}"
-
-        # --- 3. Save to Database ---
-        # if user:
-        #     invoice = Invoice.objects.create(user=user, **validated_data)
-        # else:
-        #     raise Exception("Cannot create invoice without an authenticated user.")
-        
-        # for item_data in items_data:
-        #     LineItem.objects.create(invoice=invoice, **item_data)
-            
-        # return invoice
-
         validated_data['total_amount'] = self.get_total_amount_from_items(items_data, validated_data)
-        request = self.context.get('request')
-        if request and request.data.get('total_amount'):
-            validated_data['total_amount'] = Decimal(str(request.data['total_amount']))
 
         invoice = Invoice.objects.create(user=user, **validated_data)
         for item_data in items_data:
@@ -269,7 +259,8 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ['display_name', 'phone_number', 'upi_id', 'account_number', 'email', 'ifsc_code', 'gstin', 'is_complete',
-          'street_address', 'city', 'state', 'pincode']
+          'street_address', 'city', 'state', 'pincode', 'razorpay_key_id', 'razorpay_key_secret']
+
 
     def get_is_complete(self, obj):
         required_fields = [obj.bank_name, obj.account_number, obj.ifsc_code]
@@ -329,6 +320,86 @@ class ProfileSerializer(serializers.ModelSerializer):
                 validated_data['entity_type'] = 'Other'
         else:
             validated_data['entity_type'] = 'Individual'
+
+class NotificationLogSerializer(serializers.ModelSerializer):
+    event_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = NotificationLog
+        fields = [
+            'id', 'event_type', 'event_display', 'timestamp',
+            'delivery_status', 'recipient_email', 'error_message', 'metadata',
+        ]
+        read_only_fields = fields
+
+    def get_event_display(self, obj):
+        display_map = {
+            'INVOICE_SENT': 'Invoice Sent',
+            'REMINDER_BEFORE_DUE': 'Reminder Sent (before due date)',
+            'REMINDER_ON_DUE': 'Reminder Sent (on due date)',
+            'REMINDER_AFTER_DUE': 'Reminder Sent (overdue)',
+            'PAYMENT_RECEIVED': 'Payment Received',
+            'STATUS_CHANGED': 'Status Changed',
+        }
+        return display_map.get(obj.event_type, obj.event_type)
+
+class PaymentSerializer(serializers.ModelSerializer):
+    payment_method_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Payment
+        fields = ['id', 'invoice', 'amount', 'payment_date', 'payment_method',
+                  'payment_method_display', 'reference_number', 'notes', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def get_payment_method_display(self, obj):
+        return obj.get_payment_method_display()
+
+    def validate(self, attrs):
+        invoice = attrs['invoice']
+        if invoice.status == 'CANCELLED':
+            raise serializers.ValidationError("Cannot record payment for a cancelled invoice.")
+        existing_paid = sum(p.amount for p in invoice.payments.all())
+        if existing_paid + attrs['amount'] > invoice.total_amount:
+            raise serializers.ValidationError(
+                f"Payment of ₹{attrs['amount']} exceeds remaining balance of ₹{invoice.total_amount - existing_paid}."
+            )
+        return attrs
+
+    def create(self, validated_data):
+        payment = super().create(validated_data)
+        
+        invoice = payment.invoice
+        total_paid = sum(p.amount for p in invoice.payments.all())
+        if total_paid >= invoice.total_amount:
+            invoice.status = 'PAID'
+            invoice.save(update_fields=['status'])
+            NotificationLog.objects.create(
+                invoice=invoice,
+                event_type='PAYMENT_RECEIVED',
+                delivery_status='SUCCESS',
+                metadata={'amount': str(payment.amount), 'method': payment.payment_method,
+                          'total_paid': str(total_paid)},
+            )
+        return payment
+
+class RecurringInvoiceSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='client.name', read_only=True)
+    frequency_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RecurringInvoice
+        fields = ['id', 'client', 'client_name', 'frequency', 'frequency_display',
+                  'next_issue_date', 'end_date', 'max_occurrences', 
+                  'completed_occurrences', 'is_active', 'template_data', 'created_at']
+        read_only_fields = ['id', 'created_at', 'completed_occurrences']
+
+    def get_frequency_display(self, obj):
+        return obj.get_frequency_display()
+
+
+
+
 
 
     

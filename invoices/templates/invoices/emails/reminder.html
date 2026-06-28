@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.6; margin: 0; padding: 0; background: #f9fafb; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; }
+        .header { background: #f59e0b; padding: 32px; text-align: center; }
+        .header.overdue { background: #ef4444; }
+        .header h1 { color: #ffffff; margin: 0; font-size: 20px; font-weight: 600; }
+        .body { padding: 32px; }
+        .greeting { font-size: 16px; margin-bottom: 16px; }
+        .details-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .details-table td { padding: 10px 14px; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+        .details-table td:first-child { color: #6b7280; font-weight: 500; width: 40%; }
+        .details-table td:last-child { color: #111827; font-weight: 600; text-align: right; }
+        .amount-row td { border-top: 2px solid #f59e0b; background: #fffbeb; font-size: 16px; }
+        .overdue .amount-row td { border-top-color: #ef4444; background: #fef2f2; }
+        .note { font-size: 13px; color: #6b7280; margin-top: 24px; line-height: 1.7; }
+        .footer { background: #f9fafb; padding: 20px 32px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
+    </style>
+</head>
+<body>
+    <div class="container {{ 'overdue' if is_overdue else '' }}">
+        <div class="header {{ 'overdue' if is_overdue else '' }}">
+            <h1>{% if is_overdue %}Overdue: {% endif %}Payment Reminder</h1>
+        </div>
+        <div class="body">
+            <div class="greeting">Hi {{ client_name }},</div>
+
+            {% if is_overdue %}
+            <p>This is a reminder that invoice <strong>#{{ invoice_number }}</strong> is now <strong>past due</strong>. We'd appreciate your prompt attention to this matter.</p>
+            {% else %}
+            <p>This is a friendly reminder that invoice <strong>#{{ invoice_number }}</strong> is due on <strong>{{ due_date }}</strong>.</p>
+            {% endif %}
+
+            <table class="details-table">
+                <tr>
+                    <td>Invoice Number</td>
+                    <td>#{{ invoice_number }}</td>
+                </tr>
+                <tr>
+                    <td>Due Date</td>
+                    <td>{{ due_date }}</td>
+                </tr>
+                <tr class="amount-row">
+                    <td>Amount Due</td>
+                    <td>₹{{ total_amount }}</td>
+                </tr>
+            </table>
+
+            <p>The invoice PDF is attached for your reference.</p>
+
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="http://127.0.0.1:5500/frontend/pay.html?invoice={{ invoice_id }}" style="background: #f59e0b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; display: inline-block;">Pay Now Securely</a>
+            </div>
+
+            <div class="note">
+                If you've already made the payment, please disregard this reminder. For any questions, reply to this email directly.
+            </div>
+        </div>
+        <div class="footer">
+            Sent via InvoiceFlow
+        </div>
+    </div>
+</body>
+</html>

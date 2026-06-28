@@ -1,17 +1,26 @@
-from urllib3 import request
-import weasyprint
-from rest_framework import viewsets, permissions
-from .models import Invoice, LineItem, Services, Profile, Client
-from .serializers import InvoiceSerializer, LineItemSerializer, ServicesSerializer, ProfileSerializer, RegisterSerializer, ClientSerializer
-from rest_framework.permissions import IsAuthenticated
-from django.template.loader import render_to_string
+from rest_framework import viewsets, permissions, generics
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.decorators import api_view, permission_classes, action
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.response import Response
+from rest_framework import status as http_status
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import generics
-from rest_framework.permissions import AllowAny
 from django.contrib.auth.models import User
+from .models import Invoice, LineItem, Services, Profile, Client, NotificationLog, Payment, RecurringInvoice
+from .serializers import (
+    InvoiceSerializer, LineItemSerializer, ServicesSerializer,
+    ProfileSerializer, RegisterSerializer, ClientSerializer,
+    NotificationLogSerializer,PaymentSerializer, RecurringInvoiceSerializer,
+)
+import json
+import hmac
+import hashlib
+import razorpay
+from .ai_agent import process_chat_message
+from rest_framework import status
+import datetime
+
 
 
 class ServiceViewSet(viewsets.ModelViewSet):
@@ -31,9 +40,66 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Invoice.objects.filter(user=self.request.user).order_by('-issue_date')
 
-    # def perform_create(self, validated_data):
-    #     invoice = Invoice.objects.create(**validated_data)
-    #     return invoice
+    @action(detail=True, methods=['post'])
+    def send(self, request, pk=None):
+        
+        invoice = self.get_object()
+
+        if invoice.status in ['PAID', 'CANCELLED']:
+            return Response(
+                {'error': f'Cannot send a {invoice.status.lower()} invoice.'},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not invoice.client or not invoice.client.email:
+            return Response(
+                {'error': 'Client does not have an email address.'},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+
+        from invoices.services.email_service import send_invoice_email, send_reminder_email
+
+        if invoice.status == 'DRAFT':
+            success = send_invoice_email(invoice)
+            if success:
+                invoice.status = 'SENT'
+                invoice.save(update_fields=['status'])
+                return Response({'message': 'Invoice sent successfully.'})
+        else:
+            # SENT or OVERDUE — resend/remind
+            success = send_invoice_email(invoice)
+            if success:
+                return Response({'message': 'Invoice resent successfully.'})
+
+        return Response(
+            {'error': 'Failed to send email. Check notification logs for details.'},
+            status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    @action(detail=True, methods=['get'])
+    def timeline(self, request, pk=None):
+        
+        invoice = self.get_object()
+        logs = NotificationLog.objects.filter(invoice=invoice)
+        serializer = NotificationLogSerializer(logs, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get', 'post'])
+    def payments(self, request, pk=None):
+        
+        invoice = self.get_object()
+        if request.method == 'GET':
+            payments = invoice.payments.all()
+            serializer = PaymentSerializer(payments, many=True)
+            return Response(serializer.data)
+        else:
+            data = request.data.copy()
+            data['invoice'] = invoice.id
+            serializer = PaymentSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=http_status.HTTP_201_CREATED)
+
 
 class LineItemViewSet(viewsets.ModelViewSet):
     queryset = LineItem.objects.all()
@@ -47,46 +113,12 @@ class LineItemViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAuthenticated])
 def download_invoice_pdf(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk, user=request.user)
-    serializer = InvoiceSerializer(invoice)
-    invoice_data = serializer.data
 
-    # Fetch client pincode (not stored on invoice, fetched from Client model)
-    from .models import Client
-    try:
-        client_obj = Client.objects.get(id=invoice_data['client'])
-        invoice_data['client_pincode'] = client_obj.pincode or ''
-    except Client.DoesNotExist:
-        invoice_data['client_pincode'] = ''
+    from invoices.services.pdf_service import generate_invoice_pdf
+    pdf_file = generate_invoice_pdf(invoice)
 
-    # Build billed_from from user profile
-    profile = getattr(request.user, 'profile', None)
-    bank_parts = []
-    if profile:
-        if getattr(profile, 'bank_name', None):
-            bank_parts.append(f"Bank: {profile.bank_name}")
-        if getattr(profile, 'account_number', None):
-            bank_parts.append(f"Account No: {profile.account_number}")
-        if getattr(profile, 'ifsc_code', None):
-            bank_parts.append(f"IFSC: {profile.ifsc_code}")
-        if getattr(profile, 'upi_id', None):
-            bank_parts.append(f"UPI: {profile.upi_id}")
-
-    context = {
-        'invoice': invoice_data,
-        'line_items': invoice_data.get('items', []),
-        'billed_from': {
-            'name': getattr(profile, 'display_name', '') or request.user.email,
-            'gstin': getattr(profile, 'gstin', '') or '',
-            'phone': getattr(profile, 'phone_number', '') or '',
-            'email': request.user.email,
-        },
-        'bank_details': '\n'.join(bank_parts),
-    }
-
-    html_string = render_to_string('invoices/invoice.html', context)
-    pdf_file = weasyprint.HTML(string=html_string).write_pdf()
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="invoice_{invoice_data["invoice_number"]}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="invoice_{invoice.invoice_number}.pdf"'
     return response
 
 class RegisterView(generics.CreateAPIView):
@@ -119,3 +151,172 @@ class ProfileManageView(generics.RetrieveUpdateAPIView):
 
 def landing_page(request):
     return render(request, 'landingpage.html')
+
+class RecurringInvoiceViewSet(viewsets.ModelViewSet):
+    serializer_class = RecurringInvoiceSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return RecurringInvoice.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_razorpay_order(request, pk):
+    
+    invoice = get_object_or_404(Invoice, pk=pk)
+    
+    profile = getattr(invoice.user, 'profile', None)
+    if not profile or not profile.razorpay_key_id or not profile.razorpay_key_secret:
+        return Response(
+            {'error': 'Razorpay keys not configured. Please update your profile.'},
+            status=http_status.HTTP_400_BAD_REQUEST
+        )
+    
+    if invoice.status == 'PAID':
+        return Response({'error': 'Invoice is already paid.'}, status=http_status.HTTP_400_BAD_REQUEST)
+
+    client = razorpay.Client(auth=(profile.razorpay_key_id, profile.razorpay_key_secret))
+    
+    amount_in_paise = int(float(invoice.total_amount) * 100)
+    
+    order_data = {
+        'amount': amount_in_paise,
+        'currency': 'INR',
+        'receipt': invoice.invoice_number,
+        'notes': {
+            'invoice_id': str(invoice.id),
+            'client_name': invoice.client_name,
+        }
+    }
+    
+    try:
+        order = client.order.create(data=order_data)
+        return Response({
+            'order_id': order['id'],
+            'amount': amount_in_paise,
+            'currency': 'INR',
+            'razorpay_key_id': profile.razorpay_key_id,
+            'invoice_number': invoice.invoice_number,
+            'client_name': invoice.client_name,
+            'client_email': invoice.client.email if invoice.client else '',
+        })
+    except Exception as e:
+        return Response({'error': str(e)}, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_razorpay_payment(request, pk):
+    invoice = get_object_or_404(Invoice, pk=pk)
+    
+    profile = getattr(invoice.user, 'profile', None)
+    if not profile or not profile.razorpay_key_secret:
+        return Response({'error': 'Razorpay not configured.'}, status=http_status.HTTP_400_BAD_REQUEST)
+    
+    razorpay_order_id = request.data.get('razorpay_order_id')
+    razorpay_payment_id = request.data.get('razorpay_payment_id')
+    razorpay_signature = request.data.get('razorpay_signature')
+    
+    message = f"{razorpay_order_id}|{razorpay_payment_id}"
+    expected_signature = hmac.new(
+        profile.razorpay_key_secret.encode('utf-8'),
+        message.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+    
+    if expected_signature != razorpay_signature:
+        return Response({'error': 'Payment verification failed.'}, status=http_status.HTTP_400_BAD_REQUEST)
+    
+    payment = Payment.objects.create(
+        invoice=invoice,
+        amount=invoice.total_amount,
+        payment_method='RAZORPAY',
+        payment_date=datetime.date.today(),
+        razorpay_order_id=razorpay_order_id,
+        razorpay_payment_id=razorpay_payment_id,
+        razorpay_signature=razorpay_signature,
+    )
+    
+    
+    invoice.status = 'PAID'
+    invoice.save(update_fields=['status'])
+    
+    NotificationLog.objects.create(
+        invoice=invoice,
+        event_type='PAYMENT_RECEIVED',
+        delivery_status='SUCCESS',
+        metadata={
+            'payment_id': razorpay_payment_id,
+            'amount': str(invoice.total_amount),
+            'method': 'RAZORPAY',
+        }
+    )
+    
+    return Response({'message': 'Payment verified and recorded successfully!'})
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def razorpay_webhook(request):
+    payload = request.body
+    
+    try:
+        event = json.loads(payload)
+    except json.JSONDecodeError:
+        return Response({'error': 'Invalid JSON'}, status=http_status.HTTP_400_BAD_REQUEST)
+    
+    if event.get('event') == 'payment.captured':
+        payment_entity = event['payload']['payment']['entity']
+        order_id = payment_entity.get('order_id')
+        payment_id = payment_entity.get('id')
+        amount = payment_entity.get('amount', 0) / 100  
+        receipt = payment_entity.get('notes', {}).get('invoice_id')
+        
+        if receipt:
+            try:
+                invoice = Invoice.objects.get(id=int(receipt))
+                
+                if invoice.status == 'PAID':
+                    return Response({'status': 'already_paid'})
+                
+                Payment.objects.create(
+                    invoice=invoice,
+                    amount=amount,
+                    payment_method='RAZORPAY',
+                    razorpay_order_id=order_id,
+                    razorpay_payment_id=payment_id,
+                )
+                
+                invoice.status = 'PAID'
+                invoice.save(update_fields=['status'])
+                
+                NotificationLog.objects.create(
+                    invoice=invoice,
+                    event_type='PAYMENT_RECEIVED',
+                    delivery_status='SUCCESS',
+                    metadata={'payment_id': payment_id, 'amount': str(amount), 'source': 'webhook'}
+                )
+            except Invoice.DoesNotExist:
+                pass
+    
+    return Response({'status': 'ok'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def ai_chat_endpoint(request):
+    user_message = request.data.get('message', '')
+    pending_action_id = request.data.get('pending_action_id')
+    try:
+        result = process_chat_message(request.user, user_message, pending_action_id)
+        if "error" in result:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+        return Response(result)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+

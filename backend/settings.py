@@ -14,12 +14,13 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 import environ
+from celery.schedules import crontab
+from datetime import timedelta
 
 
 
 
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env()
@@ -37,6 +38,9 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
+#AI Integration
+GEMINI_API_KEY = env('GEMINI_API_KEY')
 
 
 # Application definition
@@ -150,3 +154,45 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5500",
     "http://localhost:5500",
 ]
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = env('EMAIL_HOST_USER')
+
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+CELERY_BEAT_SCHEDULE = {
+    'scan-upcoming-reminders': {
+        'task': 'invoices.tasks.scan_upcoming_reminders',
+        'schedule': crontab(hour=9, minute=0),  
+    },
+    'scan-overdue-invoices': {
+        'task': 'invoices.tasks.scan_overdue_invoices',
+        'schedule': crontab(hour=9, minute=30),  
+    },
+    'generate-recurring-invoices': {
+    'task': 'invoices.tasks.generate_recurring_invoices',
+    'schedule': crontab(hour=8, minute=0),
+    },
+
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),   
+    'REFRESH_TOKEN_LIFETIME': timedelta(hours=16),  
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+
