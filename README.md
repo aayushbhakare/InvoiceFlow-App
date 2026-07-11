@@ -15,7 +15,7 @@ InvoiceFlow streamlines your billing process by automatically calculating taxes,
 
 ## 📸 Screenshots
 
-- Screenshots are 
+- Screenshots are present in Screeshot folder
 
 ## 🛠️ Tech Stack
 
