@@ -1,4 +1,4 @@
-const BASE_API_URL = 'http://127.0.0.1:8000/api';
+
 
 window.toast = function(msg, isError = false) {
     const el = document.getElementById('toast-el');
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true;
 
             try {
-                // 1. Authenticate the User
+                
                 const response = await fetch(`${BASE_API_URL}/token/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -37,13 +37,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (response.ok) {
-                    // 2. Save Tokens
+                    
                     localStorage.setItem('access_token', data.access);
                     localStorage.setItem('refresh_token', data.refresh);
                     
                     toast("Login successful! Checking profile status...");
                     
-                    // 3. Fetch Profile Status before routing
+                    
                     try {
                         const profileResponse = await fetch(`${BASE_API_URL}/profile/`, {
                             method: 'GET',
@@ -54,20 +54,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         const profileData = await profileResponse.json();
 
-                        // 4. The Routing Fork
+                        
                         setTimeout(() => {
                             if (profileData.is_complete === true) {
-                                // Profile is done -> Go straight to the app
+                                
                                 window.location.replace('dynamicdashboard.html');
                             } else {
-                                // Profile is incomplete -> Force onboarding
+                                
                                 window.location.replace('profile.html');
                             }
                         }, 1000);
 
                     } catch (profileError) {
                         console.error("Error checking profile:", profileError);
-                        // Safe fallback: if the check fails, send them to setup
+                        
                         window.location.replace('profile.html'); 
                     }
 

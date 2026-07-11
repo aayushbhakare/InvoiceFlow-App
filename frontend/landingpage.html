@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>InvoiceFlow - Automate Your Payments</title>
+<title>InvoiceFlow - Automate Your Payments with AI</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
@@ -27,6 +28,27 @@
   --radius: 10px;
   --font: 'Geist', system-ui, sans-serif;
   --mono: 'Geist Mono', monospace;
+}
+
+.toast {
+  position: fixed;
+  bottom: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--black);
+  color: var(--white);
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 10000;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.toast.show {
+  bottom: 24px;
+  opacity: 1;
 }
 
 html { font-size: 16px; scroll-behavior: smooth; }
@@ -270,6 +292,17 @@ body {
   .how-it-works { grid-template-columns: 1fr; }
   .india-list { grid-template-columns: 1fr; }
 }
+
+@media (max-width: 480px) {
+  .left { padding: 24px 16px; }
+  .stat-row { flex-wrap: wrap; gap: 20px; }
+  .hero-headline { font-size: 28px; }
+  .wordmark { margin-bottom: 40px; }
+  .tab-btn { margin-right: 16px; font-size: 14px; }
+  .comparison-table { display: block; overflow-x: auto; }
+  .form-wrap { max-width: 100%; }
+  .right { padding: 24px 16px; }
+}
 </style>
 </head>
 <body>
@@ -282,27 +315,27 @@ body {
     </div>
 
     <div class="hero">
-      <p class="hero-kicker">For Indian Freelancers, Consultants & Agencies</p>
+      <p class="hero-kicker">For Indian Micro-SMEs, Freelancers & Agencies</p>
       <h1 class="hero-headline">
-        Get paid faster without<br>
-        <strong>chasing clients.</strong>
+        Invoice smarter.<br>
+        <strong>Get paid faster.</strong>
       </h1>
       <p class="hero-body">
-        Create GST-ready invoices, track outstanding payments, and automate polite WhatsApp & Email reminders from one dashboard. Focus on the work, we'll handle the collection.
+        Say goodbye to manual Excel sheets. Chat with our built-in AI Assistant to instantly manage clients, check invoice status, automate GST calculations, and send one-click WhatsApp reminders.
       </p>
 
       <div class="stat-row">
         <div class="stat-item">
-          <span class="stat-num">GST</span>
-          <span class="stat-lbl">ready instantly</span>
+          <span class="stat-num">AI Assistant</span>
+          <span class="stat-lbl">your 24/7 accountant</span>
         </div>
         <div class="stat-item">
-          <span class="stat-num">Auto</span>
-          <span class="stat-lbl">payment reminders</span>
+          <span class="stat-num">1-Click</span>
+          <span class="stat-lbl">CA report exports</span>
         </div>
         <div class="stat-item">
-          <span class="stat-num">₹0</span>
-          <span class="stat-lbl">to get started</span>
+          <span class="stat-num">100%</span>
+          <span class="stat-lbl">mobile responsive</span>
         </div>
       </div>
     </div>
@@ -312,7 +345,7 @@ body {
     </div>
 
     <div class="india-box">
-        <h3>Built around Indian Tax Rules</h3>
+        <h3>Built for Indian Businesses</h3>
         <ul class="india-list">
             <li>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -320,15 +353,15 @@ body {
             </li>
             <li>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                Built-in UPI payment QR codes
+                Seamless WhatsApp integration
             </li>
             <li>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                Compliant sequential invoice numbering
+                Instant CSV exports for your CA
             </li>
             <li>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                HSN & SAC code support
+                Works on phone, tablet, and desktop
             </li>
         </ul>
     </div>
@@ -337,52 +370,81 @@ body {
     <div class="how-it-works">
         <div class="step-card">
             <span class="step-num">01</span>
-            <div class="step-title">Add Client</div>
-            <div class="step-desc">Enter their details once. We save it securely for future billing.</div>
+            <div class="step-title">Create Invoices Easily</div>
+            <div class="step-desc">Add clients and line items. We auto-calculate taxes and generate a professional PDF instantly.</div>
         </div>
         <div class="step-card">
             <span class="step-num">02</span>
-            <div class="step-title">Generate Invoice</div>
-            <div class="step-desc">Add line items. We automatically calculate the correct tax tier and attach your payment info.</div>
+            <div class="step-title">Multi-Channel Delivery</div>
+            <div class="step-desc">Send invoices directly to your client's email and WhatsApp in a single click.</div>
         </div>
         <div class="step-card">
             <span class="step-num">03</span>
-            <div class="step-title">Send & Track</div>
-            <div class="step-desc">Email the invoice directly from the dashboard or download the PDF to share via WhatsApp.</div>
+            <div class="step-title">Automated Follow-ups</div>
+            <div class="step-desc">Our system scans for overdue invoices daily and pings clients via WhatsApp so you don't have to.</div>
         </div>
         <div class="step-card">
             <span class="step-num">04</span>
-            <div class="step-title">Auto-Reminders</div>
-            <div class="step-desc">Invoice overdue? We send an automated, polite follow-up so you don't have to.</div>
+            <div class="step-title">Generate CA Reports</div>
+            <div class="step-desc">At the end of the month, download a comprehensive CSV report of all your billing for easy tax filing.</div>
         </div>
     </div>
 
-    <h2 class="section-title">Why Not Excel?</h2>
+    <h2 class="section-title">Meet Your New AI Assistant</h2>
+    <div class="india-box" style="margin-bottom: 64px; background: #1D9E75; color: #FAFAF8;">
+        <h3 style="margin-bottom: 8px;">Just ask the AI to do it.</h3>
+        <p style="font-size: 14px; margin-bottom: 24px; color: #E8F5E9; line-height: 1.5;">InvoiceFlow comes with a powerful conversational AI that understands natural language. You don't even need to navigate the dashboard—just chat.</p>
+        <ul class="india-list">
+            <li style="color: #fff;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#fff;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                "Show me all unpaid invoices for Sharma Builders"
+            </li>
+            <li style="color: #fff;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#fff;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                "Send a WhatsApp reminder to Mehta Textiles"
+            </li>
+            <li style="color: #fff;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#fff;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                "How much revenue did I collect in May?"
+            </li>
+            <li style="color: #fff;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#fff;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                "What is the total GST collected so far?"
+            </li>
+        </ul>
+    </div>
+
+    <h2 class="section-title">Why Switch from Excel?</h2>
     <table class="comparison-table">
         <tr>
             <th>Feature</th>
-            <th>Excel + PDF</th>
+            <th>Excel + Manual PDFs</th>
             <th>InvoiceFlow</th>
         </tr>
         <tr>
-            <td>Overdue Reminders</td>
+            <td>AI Assistant</td>
+            <td>Non-existent</td>
+            <td>Conversational Control</td>
+        </tr>
+        <tr>
+            <td>WhatsApp Reminders</td>
             <td>Manual & Awkward</td>
-            <td>100% Automated</td>
+            <td>Automated & Direct</td>
+        </tr>
+        <tr>
+            <td>Tax & CA Reporting</td>
+            <td>Messy Spreadsheets</td>
+            <td>1-Click CSV Exports</td>
+        </tr>
+        <tr>
+            <td>Mobile Accessibility</td>
+            <td>Breaks on Phones</td>
+            <td>100% Responsive Design</td>
         </tr>
         <tr>
             <td>GST Calculations</td>
             <td>Manual Formulas</td>
             <td>Automatic Routing</td>
-        </tr>
-        <tr>
-            <td>Status Tracking</td>
-            <td>Guesswork</td>
-            <td>Centralized Tracking</td>
-        </tr>
-        <tr>
-            <td>Payment Links</td>
-            <td>Copy/Paste UPI</td>
-            <td>Embedded in Invoice</td>
         </tr>
     </table>
   </div>
@@ -442,6 +504,8 @@ function show(view) {
   document.getElementById('tab-' + view).classList.add('active');
 }
 </script>
+<div id="toast-el" class="toast"></div>
+<script src="utils.js"></script>
 <script src="landingpage.js"></script>
 </body>
 </html>

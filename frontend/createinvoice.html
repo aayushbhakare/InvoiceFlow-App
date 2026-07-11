@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>New Invoice — InvoiceFlow</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css" />
 <link rel="stylesheet" href="createinvoice.css">
 </head>
@@ -15,7 +16,7 @@
     <div class="breadcrumb"><i class="ti ti-chevron-right"></i><span>New Invoice</span></div>
   </div>
   <div class="topbar-actions">
-    <button class="btn-primary" onclick="saveAndSendInvoice()" style="margin:0; padding: 8px 16px;"><i class="ti ti-send"></i> Save & Send</button>
+    <button class="btn-primary" onclick="saveAndSendInvoice()" style="margin:0; padding: 8px 16px;"><i class="ti ti-send"></i> <span class="btn-text">Save & Send</span></button>
   </div>
 </div>
 
@@ -51,9 +52,9 @@
 
       <div class="section">
         <div class="section-title">Services / Line items</div>
-        <div class="services-head" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 40px; gap: 10px; font-weight: 500; color: var(--gray-6); margin-bottom: 8px;">
+        <div class="services-head">
             <span>LineItems</span>
-            <span style="text-align:right">Rate (₹)</span>
+            <span class="rate-col" style="text-align:right">Rate (₹)</span>
             <span style="text-align:right">Hours/Qty</span>
             <span style="text-align:right">Amount</span>
             <span></span>
@@ -155,6 +156,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="utils.js"></script>
 <script src="createinvoice.js"></script>
 
 </body>

@@ -59,6 +59,7 @@ textarea { resize: vertical; min-height: 80px; font-size: 13px; }
 .svc-option:hover { background: var(--teal-light); }
 
 /* Services Table */
+.rate-col { display: none; }
 .services-head { display: grid; grid-template-columns: 2fr 72px 110px 36px; gap: 8px; padding-bottom: 8px; border-bottom: 0.5px solid var(--border); margin-bottom: 10px; font-size: 11px; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; }
 .service-row { display: grid; grid-template-columns: 2fr 72px 110px 36px; gap: 8px; align-items: center; margin-bottom: 10px; }
 .amount-cell { font-size: 14px; font-weight: 500; text-align: right; font-family: var(--font-mono); }
@@ -93,4 +94,22 @@ textarea { resize: vertical; min-height: 80px; font-size: 13px; }
     top: 0;
     margin-bottom: 40px;
   }
+}
+
+@media (max-width: 768px) {
+  .row-2 { grid-template-columns: 1fr; }
+  .services-head { grid-template-columns: 1fr 60px 70px 32px; gap: 6px; font-size: 10px; }
+  .service-row { grid-template-columns: 1fr 60px 70px 32px; gap: 6px; }
+  .page { padding: 1rem; }
+  .topbar { padding: 0 60px 0 12px; }
+  .topbar-actions .btn-primary { padding: 8px !important; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; }
+  .topbar-actions .btn-text { display: none; }
+  .topbar-actions i { margin: 0; font-size: 16px; }
+}
+
+@media (max-width: 480px) {
+  .service-row select { font-size: 12px; padding: 6px 4px; }
+  .service-row input { font-size: 12px; padding: 6px 4px; }
+  .page { padding: 0.75rem; }
+  .page-title { font-size: 18px; }
 }

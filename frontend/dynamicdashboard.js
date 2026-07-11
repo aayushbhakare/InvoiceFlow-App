@@ -1,22 +1,30 @@
-const BASE_API_URL = 'http://127.0.0.1:8000/api';
-
-
 let currentInvoices = [];
 let currentClients = [];
 let currentServices = [];
 let currentSelectedInvoiceId = null;
 
 
-
 if (!localStorage.getItem('access_token')) {
-    window.location.replace('index.html');
+    window.location.replace('landingpage.html');
 }
 
 
-window.addEventListener('pageshow', function(event) {
+const _originalFetch = window.fetch;
+window.fetch = async function(...args) {
+    const response = await _originalFetch(...args);
+    if (response.status === 401) {
+        localStorage.removeItem('access_token');
+        alert('Your session has expired. Please log in again.');
+        window.location.replace('landingpage.html');
+    }
+    return response;
+};
+
+
+window.addEventListener('pageshow', function (event) {
     if (event.persisted) {
         if (!localStorage.getItem('access_token')) {
-            window.location.replace('index.html');
+            window.location.replace('landingpage.html');
         }
     }
 });
@@ -24,8 +32,8 @@ window.addEventListener('pageshow', function(event) {
 async function checkProfileCompletion() {
     try {
         const response = await fetch(`${BASE_API_URL}/profile/`, {
-            method: 'GET', 
-            headers: { 
+            method: 'GET',
+            headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                 'Content-Type': 'application/json'
             }
@@ -45,8 +53,8 @@ async function checkProfileCompletion() {
 
 
             if (isMissingData) {
-                // If they bypassed the landing page, send them back to demo
-                window.location.href = 'dashboard.html';
+                
+                window.location.href = 'profile.html';
                 return false;
             }
             return true;
@@ -62,7 +70,7 @@ async function checkProfileCompletion() {
 
 async function protectedOpenModal(type) {
     const isComplete = await checkProfileCompletion();
-    
+
     if (!isComplete) {
         toast("Please complete your profile to add your own data!");
         setTimeout(() => { window.location.href = 'profile.html'; }, 2000);
@@ -82,6 +90,8 @@ async function protectedOpenModal(type) {
 
 
 async function fetchInvoices() {
+    const tbody = document.getElementById('inv-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7"><div class="loading-overlay">Loading invoices…</div></td></tr>';
     try {
         const response = await fetch(`${BASE_API_URL}/invoices/`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
@@ -92,11 +102,18 @@ async function fetchInvoices() {
             updateDashboardMetrics();
             updateDynamicCharts();
             updateReportChart();
+        } else {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="7"><div class="error-state">Failed to load invoices. Please refresh.</div></td></tr>';
         }
-    } catch (error) { console.error("Error fetching invoices:", error); }
+    } catch (error) {
+        console.error("Error fetching invoices:", error);
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7"><div class="error-state">Network error. Check your connection.</div></td></tr>';
+    }
 }
 
 async function fetchClients() {
+    const grid = document.getElementById('client-grid');
+    if (grid) grid.innerHTML = '<div class="loading-overlay">Loading clients…</div>';
     try {
         const response = await fetch(`${BASE_API_URL}/clients/`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
@@ -104,11 +121,18 @@ async function fetchClients() {
         if (response.ok) {
             currentClients = await response.json();
             renderClients(currentClients);
+        } else {
+            if (grid) grid.innerHTML = '<div class="error-state">Failed to load clients.</div>';
         }
-    } catch (error) { console.error("Error fetching clients"); }
+    } catch (error) {
+        console.error("Error fetching clients");
+        if (grid) grid.innerHTML = '<div class="error-state">Network error.</div>';
+    }
 }
 
 async function fetchServices() {
+    const tbody = document.getElementById('service-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="4"><div class="loading-overlay">Loading services…</div></td></tr>';
     try {
         const response = await fetch(`${BASE_API_URL}/services/`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
@@ -116,8 +140,13 @@ async function fetchServices() {
         if (response.ok) {
             currentServices = await response.json();
             renderServices(currentServices);
+        } else {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="4"><div class="error-state">Failed to load services.</div></td></tr>';
         }
-    } catch (error) { console.error("Error fetching services"); }
+    } catch (error) {
+        console.error("Error fetching services");
+        if (tbody) tbody.innerHTML = '<tr><td colspan="4"><div class="error-state">Network error.</div></td></tr>';
+    }
 }
 
 
@@ -128,7 +157,7 @@ function updateDashboardMetrics() {
     let totalOverdue = 0;
     let pendingCount = 0;
     let overdueCount = 0;
-    
+
     let totalTaxable = 0;
     let totalCgst = 0;
     let totalSgst = 0;
@@ -142,7 +171,7 @@ function updateDashboardMetrics() {
         const clientName = inv.client_name || 'Unknown Client';
 
         totalBilled += amount;
-        
+
         if (status === 'paid') {
             totalCollected += amount;
         } else if (status === 'pending') {
@@ -163,10 +192,10 @@ function updateDashboardMetrics() {
         if (!clientStats[clientName]) {
             clientStats[clientName] = { billed: 0, collected: 0, pending: 0, overdue: 0, count: 0 };
         }
-        
+
         clientStats[clientName].billed += amount;
         clientStats[clientName].count += 1;
-        
+
         if (status === 'paid') clientStats[clientName].collected += amount;
         else if (status === 'pending') clientStats[clientName].pending += amount;
         else if (status === 'overdue') clientStats[clientName].overdue += amount;
@@ -176,26 +205,34 @@ function updateDashboardMetrics() {
     const fmt = n => `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     document.getElementById('dash-billed').textContent = fmt(totalBilled);
-    document.getElementById('dash-billed-sub').innerHTML = `<i class="ti ti-trending-up" style="font-size:11px"></i> Updated Live`;
     document.getElementById('dash-collected').textContent = fmt(totalCollected);
-    document.getElementById('dash-collected-sub').textContent = `${collectionRate}% collection rate`;
     document.getElementById('dash-outstanding').textContent = fmt(totalOutstanding);
-    document.getElementById('dash-outstanding-sub').innerHTML = `<i class="ti ti-clock" style="font-size:11px"></i> ${pendingCount} pending`;
     document.getElementById('dash-overdue').textContent = fmt(totalOverdue);
-    document.getElementById('dash-overdue-sub').innerHTML = `<i class="ti ti-alert-triangle" style="font-size:11px"></i> ${overdueCount} invoices`;
+
+    if (currentInvoices.length === 0) {
+        document.getElementById('dash-billed-sub').innerHTML = `<span style="color:var(--gray-6)">No invoices yet</span>`;
+        document.getElementById('dash-collected-sub').textContent = 'No invoices yet';
+        document.getElementById('dash-outstanding-sub').innerHTML = `<span style="color:var(--gray-6)">No invoices yet</span>`;
+        document.getElementById('dash-overdue-sub').innerHTML = `<span style="color:var(--gray-6)">No invoices yet</span>`;
+    } else {
+        document.getElementById('dash-billed-sub').innerHTML = `<i class="ti ti-trending-up" style="font-size:11px"></i> Updated Live`;
+        document.getElementById('dash-collected-sub').textContent = `${collectionRate}% collection rate`;
+        document.getElementById('dash-outstanding-sub').innerHTML = `<i class="ti ti-clock" style="font-size:11px"></i> ${pendingCount} pending`;
+        document.getElementById('dash-overdue-sub').innerHTML = `<i class="ti ti-alert-triangle" style="font-size:11px"></i> ${overdueCount} invoices`;
+    }
 
     const recentTbody = document.getElementById('dash-recent-inv');
     if (recentTbody) {
         const recentList = [...currentInvoices].sort((a, b) => new Date(b.issue_date) - new Date(a.issue_date)).slice(0, 6);
-        if(recentList.length === 0) {
+        if (recentList.length === 0) {
             recentTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px;">No recent invoices</td></tr>`;
         } else {
             recentTbody.innerHTML = recentList.map(inv => {
                 const status = normalizeStatus(inv.status);
                 const statusClass = bmap[status] || 'b-draft';
                 return `
-                <tr onclick="openInvoiceDetail(${inv.id}, '${inv.invoice_number}', '${inv.client_name}', '${fmt(parseFloat(inv.total_amount))}', '${status}', '${inv.due_date}')">
-                    <td>${inv.client_name || '-'}</td>
+                <tr onclick="openInvoiceDetail(${inv.id}, '${inv.invoice_number}', '${escapeHtml(inv.client_name || '-')}', '${fmt(parseFloat(inv.total_amount))}', '${status}', '${inv.due_date}')">
+                    <td>${escapeHtml(inv.client_name || '-')}</td>
                     <td>${fmt(parseFloat(inv.total_amount))}</td>
                     <td><span class="badge ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
                     <td>${inv.due_date || '-'}</td>
@@ -234,7 +271,7 @@ function updateDashboardMetrics() {
                 return `
                 <div>
                     <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
-                        <span>${name}</span><span class="${statusClass}">${statusText}</span>
+                        <span>${escapeHtml(name)}</span><span class="${statusClass}">${statusText}</span>
                     </div>
                     <div class="progress-bar"><div class="progress-fill" style="width:${percent}%;${barColor}"></div></div>
                 </div>`;
@@ -252,8 +289,8 @@ function updateDashboardMetrics() {
         document.getElementById('rep-sgst').textContent = fmt(totalSgst);
         document.getElementById('rep-igst').textContent = fmt(totalIgst);
     }
+
     
-    // --- POPULATE REPORTS PAGE: REVENUE SUMMARY ---
     const rBilled = document.getElementById('r-billed');
     if (rBilled) {
         rBilled.textContent = fmt(totalBilled);
@@ -262,7 +299,7 @@ function updateDashboardMetrics() {
         document.getElementById('r-overdue').textContent = fmt(totalOverdue);
     }
 
-    
+
     const repTbody = document.getElementById('report-clients');
     if (repTbody) {
         const sortedClients = Object.entries(clientStats)
@@ -277,7 +314,7 @@ function updateDashboardMetrics() {
                 const rateClass = rate === 100 ? 'up' : (rate < 50 ? 'danger' : 'warn');
                 return `
                 <tr>
-                    <td style="font-weight:500;">${name}</td>
+                    <td style="font-weight:500;">${escapeHtml(name)}</td>
                     <td>${stats.count}</td>
                     <td>${fmt(stats.billed)}</td>
                     <td>${fmt(stats.collected)}</td>
@@ -289,12 +326,12 @@ function updateDashboardMetrics() {
 }
 
 function formatCompact(n) {
-    if (n >= 100000) return '₹' + (n/100000).toFixed(2) + 'L';
-    if (n >= 1000)   return '₹' + (n/1000).toFixed(1) + 'K';
+    if (n >= 100000) return '₹' + (n / 100000).toFixed(2) + 'L';
+    if (n >= 1000) return '₹' + (n / 1000).toFixed(1) + 'K';
     return '₹' + n;
 }
 
-const bmap = { paid:'b-paid', pending:'b-pending', overdue:'b-overdue', draft:'b-draft' };
+const bmap = { paid: 'b-paid', pending: 'b-pending', overdue: 'b-overdue', draft: 'b-draft' };
 function normalizeStatus(rawStatus) {
     const s = (rawStatus || 'draft').toLowerCase();
     return s === 'sent' ? 'pending' : s;
@@ -311,11 +348,11 @@ function renderInvoices(list) {
         const status = normalizeStatus(inv.status);
         const statusClass = bmap[status] || 'b-draft';
         const formattedAmt = parseFloat(inv.total_amount).toLocaleString('en-IN');
-        
+
         return `
-        <tr onclick="openInvoiceDetail(${inv.id}, '${inv.invoice_number}', '${inv.client_name}', '₹${formattedAmt}', '${status}', '${inv.due_date}')">
+        <tr onclick="openInvoiceDetail(${inv.id}, '${inv.invoice_number}', '${escapeHtml(inv.client_name || '-')}', '₹${formattedAmt}', '${status}', '${inv.due_date}')">
             <td style="font-family:var(--mono);font-size:11px">${inv.invoice_number || '-'}</td>
-            <td>${inv.client_name || '-'}</td>
+            <td>${escapeHtml(inv.client_name || '-')}</td>
             <td>₹${formattedAmt}</td>
             <td>${inv.issue_date || '-'}</td>
             <td>${inv.due_date || '-'}</td>
@@ -340,11 +377,11 @@ function renderClients(list) {
     }
 
     grid.innerHTML = list.map(c => {
-        const initials = c.name ? c.name.substring(0,2).toUpperCase() : 'CL';
-        
+        const initials = c.name ? c.name.substring(0, 2).toUpperCase() : 'CL';
+
         const status = (c.status || 'active').toLowerCase();
         const isInactive = status === 'inactive';
-        
+
         const badgeClass = isInactive ? 'b-inactive' : 'b-active';
         const cardOpacity = isInactive ? 'opacity: 0.6;' : 'opacity: 1;';
         const toggleIcon = isInactive ? 'ti-rotate-clockwise' : 'ti-archive';
@@ -353,9 +390,9 @@ function renderClients(list) {
         return `
         <div class="client-card" style="${cardOpacity} transition: opacity 0.3s;">
             <div class="client-avatar" style="background:var(--gray-2);color:var(--black)">${initials}</div>
-            <div class="client-name" style="${isInactive ? 'text-decoration: line-through; color: var(--gray-5);' : ''}">${c.name}</div>
+            <div class="client-name" style="${isInactive ? 'text-decoration: line-through; color: var(--gray-5);' : ''}">${escapeHtml(c.name)}</div>
             <div class="client-meta">
-                <i class="ti ti-map-pin" style="font-size:11px"></i> ${c.address || 'No Address'}
+                <i class="ti ti-map-pin" style="font-size:11px"></i> ${escapeHtml(c.address || 'No Address')}
                 &nbsp;·&nbsp;
                 <span class="badge ${badgeClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
             </div>
@@ -391,11 +428,11 @@ function renderServices(list) {
     }
 
     tbody.innerHTML = list.map(s => {
-        const safeName = (s.name || '').replace(/'/g, "\\'");
+        const safeName = escapeHtml(s.name || '');
         return `
         <tr>
-            <td style="font-weight: 500;">${s.name}</td>
-            <td style="color: var(--gray-6);">${s.description || '-'}</td>
+            <td style="font-weight: 500;">${escapeHtml(s.name)}</td>
+            <td style="color: var(--gray-6);">${escapeHtml(s.description || '-')}</td>
             <td>₹${parseFloat(s.rate).toLocaleString('en-IN')}</td>
             <td>
                 <div style="display:flex;gap:4px">
@@ -469,13 +506,21 @@ function filterServices() {
     renderServices(list);
 }
 
-// --- UI & NAVIGATION UTILITIES ---
-function showPage(name, btn) {
+
+function showPage(name) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.nav-btn, .mobile-nav-btn').forEach(b => b.classList.remove('active'));
+    
     document.getElementById('page-' + name).classList.add('active');
-    if (btn) btn.classList.add('active');
+    
+    document.querySelectorAll(`[onclick*="showPage('${name}'"]`).forEach(b => b.classList.add('active'));
+    
     closeAllModals();
+
+    const mobileNav = document.getElementById('mobile-nav');
+    if (mobileNav && mobileNav.classList.contains('open')) {
+        toggleMobileNav();
+    }
 }
 
 function openModal(type) {
@@ -506,10 +551,10 @@ document.querySelectorAll('.modal-backdrop').forEach(m => {
 
 function openInvoiceDetail(id, num, client, amount, status, due) {
     currentSelectedInvoiceId = id;
-    document.getElementById('detail-num').textContent    = num;
+    document.getElementById('detail-num').textContent = num;
     document.getElementById('detail-client').textContent = client;
     document.getElementById('detail-amount').textContent = amount;
-    document.getElementById('detail-due').textContent    = due;
+    document.getElementById('detail-due').textContent = due;
     const badge = document.getElementById('detail-badge');
     badge.className = 'badge ' + (bmap[status] || 'b-draft');
     badge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
@@ -538,17 +583,17 @@ function openInvoiceDetail(id, num, client, amount, status, due) {
                 <tbody>
                     ${items.map(item => `
                         <tr style="border-bottom:1px solid var(--gray-1)">
-                            <td style="padding:8px">${item.service_name || item.name || '-'}</td>
+                            <td style="padding:8px">${escapeHtml(item.service_name || item.name || '-')}</td>
                             <td style="padding:8px;text-align:center">${item.total_hours ?? item.quantity ?? '-'}</td>
                             <td style="padding:8px;text-align:right">${item.service_rate != null ? fmt(item.service_rate) : '-'}</td>
                             <td style="padding:8px;text-align:right;font-weight:600">${fmt(item.line_total ?? item.amount ?? 0)}</td>
                         </tr>`).join('')}
                 </tbody>
             </table>`;
-}
+    }
     const editBtn = document.getElementById('detail-edit-btn');
     if (editBtn) {
-        editBtn.onclick = function() {
+        editBtn.onclick = function () {
             closeModal('detail');
             openModal('invoice');
             const iframe = document.querySelector('#modal-invoice iframe');
@@ -564,7 +609,7 @@ async function doAction(type) {
 
     if (type === 'download') {
         toast("Generating PDF securely...");
-        
+
         try {
             const response = await fetch(`${BASE_API_URL}/invoices/${currentSelectedInvoiceId}/download/`, {
                 method: 'GET',
@@ -572,29 +617,29 @@ async function doAction(type) {
             });
 
             if (response.ok) {
-                // 1. Convert the secure response into a file blob
+                
                 const blob = await response.blob();
+
                 
-                // 2. Create a temporary URL for the blob
                 const downloadUrl = window.URL.createObjectURL(blob);
+
                 
-                // 3. Create a ghost link, click it, and destroy it
                 const a = document.createElement('a');
                 a.href = downloadUrl;
+
                 
-                // Try to get filename from backend headers, otherwise fallback
                 const disposition = response.headers.get('Content-Disposition');
                 let filename = `Invoice_${currentSelectedInvoiceId}.pdf`;
                 if (disposition && disposition.indexOf('filename=') !== -1) {
                     filename = disposition.split('filename=')[1].replace(/"/g, '');
                 }
-                
+
                 a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
                 window.URL.revokeObjectURL(downloadUrl);
-                
+
                 toast("PDF Downloaded successfully!");
             } else {
                 toast("Failed to download PDF.");
@@ -603,18 +648,18 @@ async function doAction(type) {
             console.error("Download Error:", error);
             toast("Network error. Could not download.");
         }
-    } 
+    }
     else if (type === 'paid') {
         const btn = document.querySelector(`button[onclick="doAction('paid')"]`);
         const originalText = btn.innerHTML;
         btn.innerHTML = `<i class="ti ti-loader" style="font-size:12px"></i> Updating...`;
-        
+
         try {
             const response = await fetch(`${BASE_API_URL}/invoices/${currentSelectedInvoiceId}/`, {
-                method: 'PATCH', 
-                headers: { 
+                method: 'PATCH',
+                headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}` 
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
                 },
                 body: JSON.stringify({ status: 'PAID' })
             });
@@ -622,7 +667,7 @@ async function doAction(type) {
             if (response.ok) {
                 toast("Invoice marked as paid! Revenue updated.");
                 closeModal('detail');
-                fetchInvoices(); 
+                fetchInvoices();
             } else {
                 const err = await response.json();
                 toast(err.status ? err.status[0] : "Failed to update invoice.");
@@ -634,7 +679,7 @@ async function doAction(type) {
             btn.innerHTML = originalText;
         }
     }
-    
+
     else if (type === 'reminder') {
         if (!currentSelectedInvoiceId) return;
 
@@ -707,12 +752,12 @@ async function fetchTimeline(invoiceId) {
                     <i class="ti ${info.icon}" style="color:${info.color}; font-size:16px; margin-top:2px;"></i>
                     <div style="flex:1;">
                         <div style="font-weight:500; color:#111827;">
-                            ${log.event_display}${statusBadge}
+                            ${escapeHtml(log.event_display)}${statusBadge}
                         </div>
                         <div style="font-size:11px; color:#9ca3af; margin-top:2px;">
-                            ${time}${log.recipient_email ? ' · ' + log.recipient_email : ''}
+                            ${time}${log.recipient_email ? ' · ' + escapeHtml(log.recipient_email) : ''}
                         </div>
-                        ${log.error_message ? `<div style="font-size:11px; color:#ef4444; margin-top:2px;">${log.error_message}</div>` : ''}
+                        ${log.error_message ? `<div style="font-size:11px; color:#ef4444; margin-top:2px;">${escapeHtml(log.error_message)}</div>` : ''}
                     </div>
                 </div>
             `;
@@ -781,9 +826,9 @@ function openClientEdit(clientId) {
 }
 
 async function toggleClientStatus(clientId, currentStatus) {
-    // Flip the status string
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+
     try {
         const response = await fetch(`${BASE_API_URL}/clients/${clientId}/`, {
             method: 'PATCH',
@@ -796,7 +841,7 @@ async function toggleClientStatus(clientId, currentStatus) {
 
         if (response.ok) {
             toast(`Client successfully marked as ${newStatus}!`);
-            fetchClients(); 
+            fetchClients();
         } else {
             const err = await response.json();
             toast("Failed to update client status.");
@@ -809,7 +854,7 @@ async function toggleClientStatus(clientId, currentStatus) {
 }
 
 
-window.addEventListener('click', function(e) {
+window.addEventListener('click', function (e) {
     const dropdown = document.getElementById('profile-dropdown');
     const avatar = document.querySelector('.avatar');
     if (dropdown && avatar && !avatar.contains(e.target) && !dropdown.contains(e.target)) {
@@ -843,7 +888,7 @@ function updateDynamicCharts() {
 
     currentInvoices.forEach(inv => {
         if (!inv.issue_date) return;
-        
+
         const invDate = new Date(inv.issue_date);
         const amount = parseFloat(inv.total_amount) || 0;
         const status = normalizeStatus(inv.status);
@@ -851,15 +896,33 @@ function updateDynamicCharts() {
         const monthDiff = (today.getFullYear() - invDate.getFullYear()) * 12 + (today.getMonth() - invDate.getMonth());
 
         if (monthDiff >= 0 && monthDiff <= 5) {
-            const index = 5 - monthDiff; 
-            
-            billedData[index] += amount; 
-            
+            const index = 5 - monthDiff;
+
+            billedData[index] += amount;
+
             if (status === 'paid') {
-                collectedData[index] += amount; 
+                collectedData[index] += amount;
             }
         }
     });
+
+    const hasData = billedData.some(v => v > 0) || collectedData.some(v => v > 0);
+
+    
+    const chartWrap = ctx.closest('.chart-wrap');
+    let emptyMsg = chartWrap.querySelector('.chart-empty-msg');
+    if (!hasData) {
+        if (!emptyMsg) {
+            emptyMsg = document.createElement('div');
+            emptyMsg.className = 'chart-empty-msg';
+            emptyMsg.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--gray-6);font-size:13px;';
+            emptyMsg.textContent = 'No billing data yet';
+            chartWrap.appendChild(emptyMsg);
+        }
+        emptyMsg.style.display = 'flex';
+    } else if (emptyMsg) {
+        emptyMsg.style.display = 'none';
+    }
 
     if (dashChartInstance) {
         dashChartInstance.destroy();
@@ -870,20 +933,21 @@ function updateDynamicCharts() {
         data: {
             labels: labels,
             datasets: [
-                { label:'Billed', data:billedData, backgroundColor:'#9FE1CB', borderRadius:3 },
-                { label:'Collected', data:collectedData, backgroundColor:'#1D9E75', borderRadius:3 },
+                { label: 'Billed', data: billedData, backgroundColor: '#9FE1CB', borderRadius: 3 },
+                { label: 'Collected', data: collectedData, backgroundColor: '#1D9E75', borderRadius: 3 },
             ]
         },
         options: {
-            responsive:true, maintainAspectRatio:false,
-            plugins:{ 
-                legend:{ display:false },
-                tooltip:{ callbacks:{ label: c => ` ${c.dataset.label}: ₹${c.raw.toLocaleString('en-IN')}` } } 
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ₹${c.raw.toLocaleString('en-IN')}` } }
             },
             scales: {
-                x:{ grid:{ display:false } },
-                y:{ beginAtZero:true, grid:{ color:'rgba(0,0,0,.04)' },
-                    ticks:{ callback: v => '₹' + v.toLocaleString('en-IN') } 
+                x: { grid: { display: false } },
+                y: {
+                    beginAtZero: true, grid: { color: 'rgba(0,0,0,.04)' },
+                    ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }
                 }
             }
         }
@@ -896,11 +960,11 @@ function updateReportChart() {
     const ctx = document.getElementById('report-chart');
     if (!ctx) return;
 
-    const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const today = new Date();
     const labels = [];
-    const billedData   = [0,0,0,0,0,0];
-    const collectedData = [0,0,0,0,0,0];
+    const billedData = [0, 0, 0, 0, 0, 0];
+    const collectedData = [0, 0, 0, 0, 0, 0];
 
     for (let i = 5; i >= 0; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
@@ -909,9 +973,9 @@ function updateReportChart() {
 
     currentInvoices.forEach(inv => {
         if (!inv.issue_date) return;
-        const invDate  = new Date(inv.issue_date);
-        const amount   = parseFloat(inv.total_amount) || 0;
-        const status   = normalizeStatus(inv.status);
+        const invDate = new Date(inv.issue_date);
+        const amount = parseFloat(inv.total_amount) || 0;
+        const status = normalizeStatus(inv.status);
         const monthDiff = (today.getFullYear() - invDate.getFullYear()) * 12 + (today.getMonth() - invDate.getMonth());
         if (monthDiff >= 0 && monthDiff <= 5) {
             const index = 5 - monthDiff;
@@ -927,20 +991,22 @@ function updateReportChart() {
         data: {
             labels,
             datasets: [
-                { label:'Billed',    data:billedData,    backgroundColor:'#9FE1CB', borderRadius:3 },
-                { label:'Collected', data:collectedData, backgroundColor:'#1D9E75', borderRadius:3 },
+                { label: 'Billed', data: billedData, backgroundColor: '#9FE1CB', borderRadius: 3 },
+                { label: 'Collected', data: collectedData, backgroundColor: '#1D9E75', borderRadius: 3 },
             ]
         },
         options: {
-            responsive:true, maintainAspectRatio:false,
-            plugins:{
-                legend:{ display:false },
-                tooltip:{ callbacks:{ label: c => ` ${c.dataset.label}: ₹${c.raw.toLocaleString('en-IN')}` } }
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ₹${c.raw.toLocaleString('en-IN')}` } }
             },
             scales: {
-                x:{ grid:{ display:false } },
-                y:{ beginAtZero:true, grid:{ color:'rgba(0,0,0,.04)' },
-                    ticks:{ callback: v => '₹' + v.toLocaleString('en-IN') } }
+                x: { grid: { display: false } },
+                y: {
+                    beginAtZero: true, grid: { color: 'rgba(0,0,0,.04)' },
+                    ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }
+                }
             }
         }
     });
@@ -954,7 +1020,7 @@ async function initializeDashboard() {
             fetchClients(),
             fetchServices()
         ]);
-        
+
         updateDynamicCharts();
     }
 }
@@ -1060,6 +1126,11 @@ function exportReportCSV() {
     URL.revokeObjectURL(url);
 
     toast('Report downloaded!');
+}
+
+function toggleMobileNav() {
+    const nav = document.getElementById('mobile-nav');
+    nav.classList.toggle('open');
 }
 
 document.addEventListener("DOMContentLoaded", initializeDashboard);

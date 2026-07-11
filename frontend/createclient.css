@@ -209,3 +209,12 @@ button {
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast i { font-size: 16px; color: var(--teal); }
+
+@media (max-width: 480px) {
+  .col2 { grid-template-columns: 1fr; }
+  .card-body { padding: 16px; }
+  .card-header { padding: 14px 16px; }
+  .card-footer { flex-direction: column; gap: 12px; }
+  .card-footer .btn-row { width: 100%; }
+  .card-footer .btn-row button { flex: 1; }
+}

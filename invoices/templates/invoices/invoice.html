@@ -304,11 +304,11 @@
             {% endif %}
             {% if invoice.cgst > 0 or invoice.sgst > 0 %}
             <tr>
-                <td class="totals-label">CGST (9%)</td>
+                <td class="totals-label">CGST ({% widthratio invoice.tax_rate 2 1 %}%)</td>
                 <td class="totals-value">₹{{ invoice.cgst }}</td>
             </tr>
             <tr>
-                <td class="totals-label">SGST (9%)</td>
+                <td class="totals-label">SGST ({% widthratio invoice.tax_rate 2 1 %}%)</td>
                 <td class="totals-value">₹{{ invoice.sgst }}</td>
             </tr>
             {% endif %}

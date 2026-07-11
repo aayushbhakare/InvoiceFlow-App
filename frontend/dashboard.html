@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>InvoiceFlow — Dashboard</title>
+<title>InvoiceFlow - Automate Your Payments with AI</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link rel="stylesheet" href="dashboard.css">
@@ -13,7 +14,10 @@
 <div class="notify" id="notify"></div>
  
 <div class="topbar">
-  <div style="display:flex; align-items:center; gap:20px;">
+  <div class="topbar-left" style="display:flex; align-items:center; gap:20px;">
+    <button class="hamburger" id="hamburger-btn" onclick="toggleMobileNav()">
+      <i class="ti ti-menu-2"></i>
+    </button>
     <div class="logo" onclick="showPage('dashboard', document.querySelectorAll('.nav-btn')[0])" style="cursor:pointer;">
       <i class="ti ti-file-invoice"></i> InvoiceFlow
     </div>
@@ -24,6 +28,14 @@
       <button class="nav-btn" onclick="showPage('reports',this)"><i class="ti ti-chart-bar"></i>Reports</button>
       <button class="nav-btn" onclick="showPage('services',this)"><i class="ti ti-briefcase"></i>Services/LineItems</button>
     </nav>
+  </div>
+
+  <div class="mobile-nav" id="mobile-nav">
+    <button class="mobile-nav-btn active" onclick="showPage('dashboard',this);toggleMobileNav()"><i class="ti ti-layout-dashboard"></i>Dashboard</button>
+    <button class="mobile-nav-btn" onclick="showPage('invoices',this);toggleMobileNav()"><i class="ti ti-file-text"></i>Invoices</button>
+    <button class="mobile-nav-btn" onclick="showPage('clients',this);toggleMobileNav()"><i class="ti ti-users"></i>Clients</button>
+    <button class="mobile-nav-btn" onclick="showPage('reports',this);toggleMobileNav()"><i class="ti ti-chart-bar"></i>Reports</button>
+    <button class="mobile-nav-btn" onclick="showPage('services',this);toggleMobileNav()"><i class="ti ti-briefcase"></i>Services</button>
   </div>
 
   <div class="topbar-right" style="display:flex; align-items:center; gap:12px;">
@@ -83,7 +95,7 @@
     <div class="card">
       <div class="card-head">
         <span class="card-title">Recent invoices</span>
-        <button class="btn" onclick="showPage('invoices',document.querySelectorAll('.nav-btn')[1])">View all</button>
+        <button class="btn hide-mobile" onclick="showPage('invoices',document.querySelectorAll('.nav-btn')[1])">View all</button>
       </div>
       <table>
         <thead><tr>
@@ -330,12 +342,15 @@
         <div class="detail-metric"><div class="metric-label">Amount</div><div class="metric-val" id="detail-amount">₹45,000</div></div>
         <div class="detail-metric"><div class="metric-label">Due date</div><div class="metric-val" id="detail-due">Jun 5</div></div>
       </div>
-      <table style="margin-bottom:12px">
-        <thead><tr><th style="width:50%">Item</th><th style="width:20%">Qty</th><th style="width:30%">Amount</th></tr></thead>
-        <tbody><tr><td>Consulting services</td><td>10 hrs</td><td>₹30,000</td></tr><tr><td>Design deliverables</td><td>1 set</td><td>₹15,000</td></tr></tbody>
+      <table style="margin-bottom:12px; width: 100%;">
+        <thead><tr><th style="width:50%">Item</th><th style="width:20%; text-align:center">Qty</th><th style="width:30%; text-align:right">Amount</th></tr></thead>
+        <tbody>
+          <tr><td>Consulting services</td><td style="text-align:center">10 hrs</td><td style="text-align:right">₹30,000</td></tr>
+          <tr><td>Design deliverables</td><td style="text-align:center">1 set</td><td style="text-align:right">₹15,000</td></tr>
+        </tbody>
       </table>
-      <div class="total-row"><span style="color:var(--gray-6)">Subtotal</span><span>₹45,000</span></div>
-      <div class="total-row"><span style="color:var(--gray-6)">GST 18%</span><span>₹8,100</span></div>
+      <div class="total-row"><span style="color:var(--gray-6)">Subtotal</span><span style="font-weight:500">₹45,000</span></div>
+      <div class="total-row"><span style="color:var(--gray-6)">GST 18%</span><span style="font-weight:500">₹8,100</span></div>
       <div class="total-row grand"><span>Total</span><span>₹53,100</span></div>
     </div>
     <div class="modal-footer">
@@ -375,6 +390,7 @@
 
 
 
-<script src="dashboard.js"></script>
+  <script src="utils.js"></script>
+  <script src="dashboard.js"></script>
 </body>
 </html>

@@ -1,16 +1,16 @@
-const BASE_API_URL = 'http://127.0.0.1:8000/api';
+
         const urlParams = new URLSearchParams(window.location.search);
-        const invoiceId = urlParams.get('invoice');
+        const invoiceToken = urlParams.get('token');
         let orderData = null;
 
         async function init() {
-            if (!invoiceId) {
+            if (!invoiceToken) {
                 document.getElementById('status').textContent = 'Invalid payment link.';
                 return;
             }
 
             try {
-                const res = await fetch(`${BASE_API_URL}/invoices/${invoiceId}/create-order/`, {
+                const res = await fetch(`${BASE_API_URL}/invoices/${invoiceToken}/create-order/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -47,7 +47,7 @@ const BASE_API_URL = 'http://127.0.0.1:8000/api';
                     document.getElementById('status').textContent = 'Verifying payment...';
 
                     try {
-                        const verifyRes = await fetch(`${BASE_API_URL}/invoices/${invoiceId}/verify-payment/`, {
+                        const verifyRes = await fetch(`${BASE_API_URL}/invoices/${invoiceToken}/verify-payment/`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({

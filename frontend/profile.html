@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>InvoiceFlow - Complete Your Profile</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -100,14 +101,21 @@
         <button type="submit" id="save-profile-btn" class="submit-btn">Save & Go to Dashboard</button>
 
         <p class="skip-text" id="skip-wrapper">
-            <a href="dashboard.html" id="skip-profile-btn">Skip for now, I'll complete this later</a>
+            <a href="dynamicdashboard.html" id="skip-profile-btn">Skip for now, I'll complete this later</a>
         </p>
 
     </form>
 </div>
 
+<div class="container danger-zone">
+    <h2 class="title" style="color: var(--red-text);">Danger Zone</h2>
+    <p class="subtitle">Once you delete your account, there is no going back. Please be certain.</p>
+    <button class="btn-danger" onclick="deleteAccount()">Delete My Account</button>
+</div>
+
 <div id="toast-el" class="toast"></div>
 
+<script src="utils.js"></script>
 <script src="profile.js"></script>
 </body>
 </html>

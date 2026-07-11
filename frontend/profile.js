@@ -3,7 +3,7 @@ if (!token) {
     window.location.href = 'landingpage.html';
 }
 
-const BASE_API_URL = 'http://127.0.0.1:8000/api';
+
 
 window.toast = function(msg) {
     const el = document.getElementById('toast-el');
@@ -60,7 +60,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (data.state) document.getElementById('state').value = data.state;
 
             if (data.razorpay_key_id) document.getElementById('razorpay_key_id').value = data.razorpay_key_id;
-            if (data.razorpay_key_secret) document.getElementById('razorpay_key_secret').value = data.razorpay_key_secret;
+            if (data.has_razorpay_secret) {
+                const secretInput = document.getElementById('razorpay_key_secret');
+                if (secretInput) {
+                    secretInput.value = "••••••••••";
+                }
+            }
 
 
             const isComplete = data.account_number && data.ifsc_code;
@@ -71,7 +76,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const skipBtn = document.getElementById('skip-profile-btn');
 
             if (isComplete) {
-                // --- USER HAS COMPLETED PROFILE ---
+                
                 if (titleEl) titleEl.textContent = "Manage Business Profile";
                 if (subtitleEl) subtitleEl.textContent = "Update your billing and bank details below.";
 
@@ -81,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     skipBtn.textContent = "Cancel / Back";
                     skipBtn.onclick = (e) => {
                         e.preventDefault();
-                        window.location.replace('dynamicdashboard.html'); // Go to REAL dashboard
+                        window.location.replace('dynamicdashboard.html'); 
                     };
                 }
             } else {
@@ -95,7 +100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     skipBtn.textContent = "Skip for now";
                     skipBtn.onclick = (e) => {
                         e.preventDefault();
-                        window.location.replace('dashboard.html'); // Go to DUMMY dashboard
+                        window.location.replace('dynamicdashboard.html');
                     };
                 }
             }
@@ -122,9 +127,16 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
         street_address: document.getElementById('street_address').value || null,
         city: document.getElementById('city').value || null,
         state: document.getElementById('state').value || null,
-        razorpay_key_id: document.getElementById('razorpay_key_id') ? document.getElementById('razorpay_key_id').value : null,
-        razorpay_key_secret: document.getElementById('razorpay_key_secret') ? document.getElementById('razorpay_key_secret').value : null
+        razorpay_key_id: document.getElementById('razorpay_key_id') ? document.getElementById('razorpay_key_id').value : null
     };
+
+    const secretInput = document.getElementById('razorpay_key_secret');
+    if (secretInput) {
+        const val = secretInput.value.trim();
+        if (val !== '' && val !== '••••••••••') {
+            payload.razorpay_key_secret = val;
+        }
+    }
 
     const submitBtn = document.querySelector('.submit-btn');
     submitBtn.textContent = 'Saving...';
@@ -167,3 +179,39 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
         submitBtn.textContent = 'Save & Go to Dashboard';
     }
 });
+
+async function deleteAccount() {
+    const confirmDelete = confirm("WARNING: This will permanently delete your account, clients, services, and all invoices. This action cannot be undone.\n\nAre you absolutely sure you want to proceed?");
+    if (!confirmDelete) return;
+
+    const password = prompt("Please enter your password to confirm deletion:");
+    if (!password) {
+        toast("Password is required to delete your account.");
+        return;
+    }
+
+    try {
+        const response = await fetch(`${BASE_API_URL}/delete-account/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert("Your account and all associated data have been deleted.");
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            window.location.replace('landingpage.html');
+        } else {
+            toast(data.error || "Failed to delete account.");
+        }
+    } catch (error) {
+        console.error("Delete Account Error:", error);
+        toast("Network error. Could not connect to server.");
+    }
+}

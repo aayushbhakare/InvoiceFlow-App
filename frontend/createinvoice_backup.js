@@ -51,7 +51,7 @@ function loadClient() {
   recalc(); 
 }
 
-// Service Row Logic
+
 function addRow() {
   const id = ++rowId;
   rows.push({ id, name: "", qty: 1, price: 0 });
@@ -177,11 +177,11 @@ async function saveInvoice() {
     if (res.ok) {
     showToast("Invoice Saved Successfully!");
     setTimeout(() => {
-        // Tell the main dashboard to close this modal
+        
         if (window.parent && window.parent.closeModal) {
             window.parent.closeModal('invoice');
             
-            // Optional: Tell the dashboard to refresh the invoices table
+            
             if (window.parent.fetchInvoices) {
                 window.parent.fetchInvoices();
             }

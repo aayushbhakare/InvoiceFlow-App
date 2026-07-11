@@ -43,11 +43,7 @@ function renderMarkdown(text) {
     return html;
 }
 
-function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
+
 
 function showTypingIndicator() {
     const container = document.getElementById('chat-messages');
@@ -69,7 +65,7 @@ function hideTypingIndicator() {
 
 function appendConfirmation(data) {
     const container = document.getElementById('chat-messages');
-    currentPendingActionId = data.pending_action_id; // Store UUID safely
+    currentPendingActionId = data.pending_action_id; 
 
     const wrapper = document.createElement('div');
     wrapper.className = 'ai-msg';
@@ -95,7 +91,7 @@ function approveAction() {
     const actionId = currentPendingActionId;
     currentPendingActionId = null;
     
-    // Send only the UUID back to the server
+    
     sendChatMessage(null, actionId); 
 }
 
@@ -141,10 +137,10 @@ async function sendChatMessage(userMessageOverride = null, approvedPendingAction
     const inputEl = document.getElementById('chat-input');
     const message = userMessageOverride || (inputEl ? inputEl.value.trim() : '');
 
-    // Ignore empty clicks unless approving an action
+    
     if (!approvedPendingActionId && !message) return;
 
-    // Show user message bubble
+   
     if (!approvedPendingActionId && message) {
         appendUserBubble(message);
         lastUserMessage = message;
@@ -197,9 +193,15 @@ async function sendChatMessage(userMessageOverride = null, approvedPendingAction
             return;
         }
 
-       
         if (data.response) {
             appendAIBubble(data.response);
+        }
+
+        
+        if ((data.tool_steps && data.tool_steps.length > 0) || approvedPendingActionId) {
+            if (typeof window.fetchInvoices === 'function') window.fetchInvoices();
+            if (typeof window.fetchClients === 'function') window.fetchClients();
+            if (typeof window.fetchServices === 'function') window.fetchServices();
         }
 
     } catch (err) {

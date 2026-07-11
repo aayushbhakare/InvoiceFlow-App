@@ -1,11 +1,11 @@
-const BASE_API_URL = 'http://127.0.0.1:8000/api';
+
 const token = localStorage.getItem('access_token');
 
 const params = new URLSearchParams(window.location.search);
 const serviceId = params.get('id');
 let isEditMode = false;
 
-// Reusing your validation logic from createclient.js
+
 function chk(id, val) {
   const f = document.getElementById(id);
   f.classList.toggle('invalid', val.trim().length === 0);
@@ -81,7 +81,14 @@ async function submitService() {
     return;
   }
 
-  // Matches your Django ServicesSerializer exactly
+  
+  if (parseFloat(rateInput.value) < 0) {
+    document.getElementById('f-rate').classList.add('invalid');
+    showToast('Rate cannot be negative', true);
+    return;
+  }
+
+  
   const payload = {
     name: nameInput.value.trim(),
     description: descInput.value.trim(),
@@ -110,7 +117,7 @@ async function submitService() {
         showToast(isEditMode ? 'Service updated successfully!' : 'Service added successfully!');
         
         setTimeout(() => {
-            // Trigger the dashboard to fetch the new list of services
+            
             if (window.parent && window.parent.fetchServices) {
                 window.parent.fetchServices();
             }

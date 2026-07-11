@@ -1,4 +1,4 @@
-const BASE_API_URL = 'http://127.0.0.1:8000/api';
+
 const urlParams  = new URLSearchParams(window.location.search);
 const editId     = urlParams.get('id');
 const isEditMode = !!editId;
@@ -43,6 +43,13 @@ function chkMobile(val) {
   const f = document.getElementById('f-mobile');
   if (val.length === 0) { f.classList.remove('invalid'); return; }
   f.classList.toggle('invalid', digits.length !== 10);
+}
+
+function chkGstin(val) {
+  const f = document.getElementById('f-gstin');
+  if (val.length === 0) { f.classList.remove('invalid'); return; }
+  const ok = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(val.toUpperCase());
+  f.classList.toggle('invalid', !ok);
 }
 
 async function fetchPincodeData(pincode) {
@@ -108,6 +115,14 @@ async function submitForm() {
     return;
   }
 
+  
+  const gstinVal = (document.getElementById('c-gstin') ? document.getElementById('c-gstin').value.trim() : '').toUpperCase();
+  if (gstinVal && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstinVal)) {
+    document.getElementById('f-gstin').classList.add('invalid');
+    showToast('Please enter a valid GSTIN');
+    return;
+  }
+
   const city    = document.getElementById('c-city').value.trim();
   const state   = document.getElementById('c-state').value.trim();
   const street  = document.getElementById('c-address').value.trim();
@@ -122,6 +137,7 @@ async function submitForm() {
     city:            city,
     state:           state,
     pincode:         pincode,
+    gstin:           gstinVal || null,
 };
 
   try {

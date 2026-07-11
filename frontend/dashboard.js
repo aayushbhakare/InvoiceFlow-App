@@ -1,4 +1,4 @@
-const BASE_API_URL = 'http://127.0.0.1:8000/api';
+
 
 const invoices = [
   {num:'INV-2026-041',client:'Mehta Textiles',  amount:45000,  issued:'May 15',due:'Jun 5', status:'pending'},
@@ -164,12 +164,26 @@ function updateReports() {
   document.getElementById('r-sgst').textContent     = p.sgst;
 }
 
+function toggleMobileNav() {
+    document.getElementById('mobile-nav').classList.toggle('open');
+}
+
+function closeMobileNav() {
+    document.getElementById('mobile-nav').classList.remove('open');
+}
+
 function showPage(name, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
+  const desktopBtns = document.querySelectorAll('.nav-btn');
+  const mobileBtns = document.querySelectorAll('.mobile-nav-btn');
+  desktopBtns.forEach(b => { if (b.textContent.toLowerCase().includes(name)) b.classList.add('active'); });
+  mobileBtns.forEach(b => { if (b.textContent.toLowerCase().includes(name)) b.classList.add('active'); });
   closeAllModals();
+  closeMobileNav();
 }
 
 function openModal(type) { closeAllModals(); document.getElementById('modal-' + type).classList.add('open'); }
@@ -213,9 +227,9 @@ function toast(msg) {
   n._t = setTimeout(() => n.classList.remove('show'), 2500);
 }
 
-// --- SMART PINCODE ENGINE ---
+
 async function fetchPincodeData(pincode) {
-    // Only search when the user types exactly 6 digits
+    
     if (pincode.length === 6) {
         document.getElementById('c-city').value = "Loading...";
         document.getElementById('c-state').value = "Loading...";
@@ -225,7 +239,7 @@ async function fetchPincodeData(pincode) {
             const data = await response.json();
 
             if (data[0].Status === "Success") {
-                // Grab the exact District and State from the Post Office database
+                
                 const location = data[0].PostOffice[0];
                 document.getElementById('c-city').value = location.District;
                 document.getElementById('c-state').value = location.State;
@@ -244,30 +258,16 @@ async function fetchPincodeData(pincode) {
 
 
 
-// Toggle the dropdown
-function toggleProfileMenu() {
-  document.getElementById('profile-dropdown').classList.toggle('show');
-}
 
-// Close the menu if user clicks outside
-window.onclick = function(event) {
-  if (!event.target.matches('.avatar')) {
-    var dropdowns = document.getElementsByClassName("profile-dropdown");
-    for (var i = 0; i < dropdowns.length; i++) {
-      dropdowns[i].classList.remove('show');
-    }
-  }
-}
 
-// Placeholder logout function
 function logout() {
   localStorage.removeItem('access_token');
-  window.location.href = 'landingpage.html'; // Redirect to login
+  window.location.href = 'landingpage.html'; 
 }
 
 function toggleProfileMenu() {
     const dropdown = document.getElementById('profile-dropdown');
-    // Toggle between none and block
+    
     dropdown.style.display = (dropdown.style.display === 'block') ? 'none' : 'block';
 }
 
@@ -288,7 +288,7 @@ function toggleDummyClientStatus(clientName) {
     }
 }
 
-// Optional: Close the menu when clicking outside
+
 window.addEventListener('click', function(e) {
     const dropdown = document.getElementById('profile-dropdown');
     const avatar = document.querySelector('.avatar');
@@ -296,33 +296,6 @@ window.addEventListener('click', function(e) {
         dropdown.style.display = 'none';
     }
 });
-
-// async function checkProfileCompletion() {
-//     try {
-//         const response = await fetch(`${BASE_API_URL}/profile/`, {
-//             method: 'GET', 
-//             headers: { 
-//                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-//                 'Content-Type': 'application/json'
-//             }
-//         });
-
-//         if (response.ok) {
-//             const profile = await response.json();
-            
-//             const isMissingData = !profile.account_number || !profile.ifsc_code;
-            
-//             if (isMissingData) {
-//                 console.warn("Profile incomplete. Redirecting...");
-//                 toast("Please complete your profile to access all features.");
-//                 return false;
-//             }
-//             return true;
-//         }
-//     } catch (error) {
-//         console.error("Gatekeeper error:", error);
-//     }
-// }
 
 async function checkProfileCompletion() {
     try {
@@ -337,7 +310,6 @@ async function checkProfileCompletion() {
         if (response.ok) {
             const profile = await response.json();
             
-            // --- 1. INSTANT UI HYDRATION (Directly from Django) ---
             const name = profile.display_name || (profile.email ? profile.email.split('@')[0] : 'User');
             const email = profile.email || '';
             const initials = name.substring(0, 2).toUpperCase();
@@ -349,9 +321,7 @@ async function checkProfileCompletion() {
             if (navAvatar) navAvatar.textContent = initials;
             if (navName) navName.textContent = name;
             if (navEmail) navEmail.textContent = email;
-            // ------------------------------------------------------
-
-            // 2. Check if they need to finish onboarding
+            
             const isMissingData = !profile.account_number || !profile.ifsc_code;
             if (isMissingData) {
                 console.warn("Profile incomplete. User is in Demo Mode.");
@@ -387,12 +357,11 @@ async function initializeDashboard() {
     if (isPersonalizedMode) {
         console.log("Profile complete: Loading Personalized Dashboard");
         
-        // 1. Wipe the hardcoded demo data clean
+        
         document.getElementById('service-tbody').innerHTML = '';
         document.getElementById('inv-tbody').innerHTML = '';
         // document.getElementById('client-grid').innerHTML = '';
         
-        // 2. Fetch the user's real data from the API
         // loadRealServices();
         // loadRealInvoices();
         
@@ -405,7 +374,7 @@ async function initializeDashboard() {
 document.addEventListener("DOMContentLoaded", initializeDashboard);
 
 
-// Initialization
+
 checkProfileCompletion();
 
 renderInvoices(invoices);

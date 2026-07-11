@@ -4,12 +4,8 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from invoices.models import NotificationLog
 from invoices.services.pdf_service import generate_invoice_pdf
-
 logger = logging.getLogger(__name__)
-
-
 def send_invoice_email(invoice):
-    
     client = invoice.client
     if not client or not client.email:
         NotificationLog.objects.create(
@@ -19,13 +15,10 @@ def send_invoice_email(invoice):
             error_message='Client has no email address.',
         )
         return False
-
     user = invoice.user
     profile = getattr(user, 'profile', None)
     sender_name = getattr(profile, 'display_name', '') or user.email
     from_email = f"{sender_name} via InvoiceFlow <{settings.DEFAULT_FROM_EMAIL}>"
-
-    
     context = {
         'sender_name': sender_name,
         'client_name': client.contact_person or client.name,
@@ -34,10 +27,10 @@ def send_invoice_email(invoice):
         'due_date': invoice.due_date,
         'total_amount': invoice.total_amount,
         'invoice_id': invoice.id,
+        'payment_token': str(invoice.payment_token),
+        'payment_base_url': getattr(settings, 'PAYMENT_BASE_URL', 'http://127.0.0.1:5500'),
     }
     html_body = render_to_string('invoices/emails/invoice_sent.html', context)
-
-    
     try:
         pdf_bytes = generate_invoice_pdf(invoice)
     except Exception as e:
@@ -50,8 +43,6 @@ def send_invoice_email(invoice):
             error_message=f'PDF generation failed: {str(e)}',
         )
         return False
-
-    
     try:
         email = EmailMessage(
             subject=f"Invoice #{invoice.invoice_number} from {sender_name}",
@@ -67,8 +58,6 @@ def send_invoice_email(invoice):
             'application/pdf'
         )
         email.send(fail_silently=False)
-
-       
         NotificationLog.objects.create(
             invoice=invoice,
             event_type='INVOICE_SENT',
@@ -76,7 +65,6 @@ def send_invoice_email(invoice):
             recipient_email=client.email,
         )
         return True
-
     except Exception as e:
         logger.error(f"Email sending failed for invoice {invoice.invoice_number}: {e}")
         NotificationLog.objects.create(
@@ -87,8 +75,6 @@ def send_invoice_email(invoice):
             error_message=str(e),
         )
         return False
-
-
 def send_reminder_email(invoice, reminder_type, metadata=None):
     client = invoice.client
     if not client or not client.email:
@@ -100,14 +86,11 @@ def send_reminder_email(invoice, reminder_type, metadata=None):
             metadata=metadata,
         )
         return False
-
     user = invoice.user
     profile = getattr(user, 'profile', None)
     sender_name = getattr(profile, 'display_name', '') or user.email
     from_email = f"{sender_name} via InvoiceFlow <{settings.DEFAULT_FROM_EMAIL}>"
-
     is_overdue = reminder_type == 'REMINDER_AFTER_DUE'
-
     context = {
         'sender_name': sender_name,
         'client_name': client.contact_person or client.name,
@@ -116,9 +99,10 @@ def send_reminder_email(invoice, reminder_type, metadata=None):
         'total_amount': invoice.total_amount,
         'is_overdue': is_overdue,
         'invoice_id': invoice.id,
+        'payment_token': str(invoice.payment_token),
+        'payment_base_url': getattr(settings, 'PAYMENT_BASE_URL', 'http://127.0.0.1:5500'),
     }
     html_body = render_to_string('invoices/emails/reminder.html', context)
-
     try:
         pdf_bytes = generate_invoice_pdf(invoice)
     except Exception as e:
@@ -132,7 +116,6 @@ def send_reminder_email(invoice, reminder_type, metadata=None):
             metadata=metadata,
         )
         return False
-
     try:
         subject_prefix = "Overdue: " if is_overdue else ""
         email = EmailMessage(
@@ -149,7 +132,6 @@ def send_reminder_email(invoice, reminder_type, metadata=None):
             'application/pdf'
         )
         email.send(fail_silently=False)
-
         NotificationLog.objects.create(
             invoice=invoice,
             event_type=reminder_type,
@@ -158,7 +140,6 @@ def send_reminder_email(invoice, reminder_type, metadata=None):
             metadata=metadata,
         )
         return True
-
     except Exception as e:
         logger.error(f"Reminder email failed for invoice {invoice.invoice_number}: {e}")
         NotificationLog.objects.create(
