@@ -59,12 +59,12 @@ const blbl = { paid:'Paid', pending:'Pending', overdue:'Overdue', draft:'Draft' 
 
 function renderInvoices(list) {
   document.getElementById('inv-tbody').innerHTML = list.map(inv => `
-    <tr onclick="openInvoiceDetail('${inv.num}','${inv.client}','₹${inv.amount.toLocaleString('en-IN')}','${inv.status}','${inv.due}')">
-      <td style="font-family:var(--mono);font-size:11px">${inv.num}</td>
-      <td>${inv.client}</td>
+    <tr onclick="openInvoiceDetail('${escapeHtml(inv.num)}','${escapeHtml(inv.client)}','₹${inv.amount.toLocaleString('en-IN')}','${escapeHtml(inv.status)}','${escapeHtml(inv.due)}')">
+      <td style="font-family:var(--mono);font-size:11px">${escapeHtml(inv.num)}</td>
+      <td>${escapeHtml(inv.client)}</td>
       <td>₹${inv.amount.toLocaleString('en-IN')}</td>
-      <td>${inv.issued}</td>
-      <td>${inv.due}</td>
+      <td>${escapeHtml(inv.issued)}</td>
+      <td>${escapeHtml(inv.due)}</td>
       <td><span class="badge ${bmap[inv.status]}">${blbl[inv.status]}</span></td>
       <td>
         <div style="display:flex;gap:4px">
@@ -99,11 +99,11 @@ function renderClients(list) {
     const toggleTitle = isInactive ? 'Restore to Active' : 'Mark Inactive';
 
     return `
-    <div class="client-card" style="${cardOpacity} transition: opacity 0.3s;" onclick="toast('Opening ${c.name} profile')">
-      <div class="client-avatar" style="background:${c.color};color:${c.tcolor}">${c.initials}</div>
-      <div class="client-name" style="${isInactive ? 'text-decoration: line-through; color: var(--gray-5);' : ''}">${c.name}</div>
+    <div class="client-card" style="${cardOpacity} transition: opacity 0.3s;" onclick="toast('Opening ${escapeHtml(c.name)} profile')">
+      <div class="client-avatar" style="background:${c.color};color:${c.tcolor}">${escapeHtml(c.initials)}</div>
+      <div class="client-name" style="${isInactive ? 'text-decoration: line-through; color: var(--gray-5);' : ''}">${escapeHtml(c.name)}</div>
       <div class="client-meta">
-        <i class="ti ti-map-pin" style="font-size:11px"></i> ${c.city}
+        <i class="ti ti-map-pin" style="font-size:11px"></i> ${escapeHtml(c.city)}
         &nbsp;·&nbsp;
         <span class="badge ${badgeClass}">${c.status.charAt(0).toUpperCase() + c.status.slice(1)}</span>
       </div>

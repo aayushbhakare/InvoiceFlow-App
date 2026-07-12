@@ -1,5 +1,6 @@
 
-const AI_API_URL = 'http://127.0.0.1:8000/api/chat/';
+// SEC-04: Use centralized BASE_API_URL instead of hardcoded URL
+const AI_API_URL = `${BASE_API_URL}/chat/`;
 let isChatOpen = false;
 let historyLoaded = false;
 let currentPendingActionId = null; 

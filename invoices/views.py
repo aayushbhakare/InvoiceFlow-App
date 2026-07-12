@@ -92,6 +92,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 class LineItemViewSet(viewsets.ModelViewSet):
     queryset = LineItem.objects.all()
     serializer_class = LineItemSerializer
+    permission_classes = [IsAuthenticated]  # SEC-03: Explicit auth required
     def get_queryset(self):
         return LineItem.objects.filter(invoice__user=self.request.user)
 @api_view(['GET'])
@@ -199,7 +200,8 @@ def verify_razorpay_payment(request, payment_token):
         message.encode('utf-8'),
         hashlib.sha256
     ).hexdigest()
-    if expected_signature != razorpay_signature:
+    # SEC-02: Use constant-time comparison to prevent timing attacks
+    if not hmac.compare_digest(expected_signature, razorpay_signature or ''):
         return Response({'error': 'Payment verification failed.'}, status=http_status.HTTP_400_BAD_REQUEST)
     payment = Payment.objects.create(
         invoice=invoice,
@@ -283,4 +285,7 @@ def ai_chat_endpoint(request):
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
         return Response(result)
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        import logging
+        logging.getLogger('invoices').error(f"AI Chat Error for user {request.user.id}: {e}", exc_info=True)
+        # SEC-05: Don't leak internal error details to the client
+        return Response({"error": "Something went wrong. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

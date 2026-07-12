@@ -47,7 +47,7 @@ Make sure you have the following installed on your machine:
 
 **1. Clone the repository**
 ```bash
-git clone https://github.com/yourusername/Invoice_app.git
+git clone https://github.com/aayushbhakare/InvoiceFlow_app.git
 cd Invoice_app
 ```
 

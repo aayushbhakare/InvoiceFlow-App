@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 db.sqlite3
 logs/
+.DS_Store
+media/
+staticfiles/
+.pytest_cache/
