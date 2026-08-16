@@ -122,7 +122,7 @@ REST_FRAMEWORK = {
     },
 }
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = 'https://invoiceflow-app-nine.vercel.app/'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
