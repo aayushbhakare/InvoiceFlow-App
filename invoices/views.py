@@ -138,7 +138,7 @@ class DeleteAccountView(APIView):
         user.delete()
         return Response({"success": "Account deleted successfully."}, status=status.HTTP_200_OK)
 def landing_page(request):
-    return render(request, 'landingpage.html')
+    return render(request, 'index.html')
 class RecurringInvoiceViewSet(viewsets.ModelViewSet):
     serializer_class = RecurringInvoiceSerializer
     permission_classes = [IsAuthenticated]

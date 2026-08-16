@@ -262,7 +262,7 @@ async function fetchPincodeData(pincode) {
 
 function logout() {
   localStorage.removeItem('access_token');
-  window.location.href = 'landingpage.html'; 
+  window.location.href = 'index.html'; 
 }
 
 function toggleProfileMenu() {

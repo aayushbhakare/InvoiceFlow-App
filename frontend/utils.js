@@ -1,4 +1,4 @@
-var BASE_API_URL = window.BASE_API_URL || 'http://127.0.0.1:8000/api';
+var BASE_API_URL = window.BASE_API_URL || 'https://invoiceflow-backend-fsuv.onrender.com/api';
 
 
 function getToken() {

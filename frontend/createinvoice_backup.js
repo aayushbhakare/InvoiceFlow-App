@@ -1,5 +1,5 @@
 const token = localStorage.getItem('access_token');
-const BASE_API_URL = 'http://127.0.0.1:8000/api';
+const BASE_API_URL = 'https://invoiceflow-backend-fsuv.onrender.com/api';
 
 let globalClients = [];
 let globalServices = [];

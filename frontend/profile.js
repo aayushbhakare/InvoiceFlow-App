@@ -1,6 +1,6 @@
 const token = localStorage.getItem('access_token');
 if (!token) {
-    window.location.href = 'landingpage.html';
+    window.location.href = 'index.html';
 }
 
 
@@ -206,7 +206,7 @@ async function deleteAccount() {
             alert("Your account and all associated data have been deleted.");
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
-            window.location.replace('landingpage.html');
+            window.location.replace('index.html');
         } else {
             toast(data.error || "Failed to delete account.");
         }

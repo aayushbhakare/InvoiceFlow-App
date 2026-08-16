@@ -5,7 +5,7 @@ let currentSelectedInvoiceId = null;
 
 
 if (!localStorage.getItem('access_token')) {
-    window.location.replace('landingpage.html');
+    window.location.replace('index.html');
 }
 
 
@@ -15,7 +15,7 @@ window.fetch = async function(...args) {
     if (response.status === 401) {
         localStorage.removeItem('access_token');
         alert('Your session has expired. Please log in again.');
-        window.location.replace('landingpage.html');
+        window.location.replace('index.html');
     }
     return response;
 };
@@ -24,7 +24,7 @@ window.fetch = async function(...args) {
 window.addEventListener('pageshow', function (event) {
     if (event.persisted) {
         if (!localStorage.getItem('access_token')) {
-            window.location.replace('landingpage.html');
+            window.location.replace('index.html');
         }
     }
 });
@@ -59,7 +59,7 @@ async function checkProfileCompletion() {
             }
             return true;
         } else {
-            window.location.href = 'landingpage.html';
+            window.location.href = 'index.html';
             return false;
         }
     } catch (error) {
@@ -864,7 +864,7 @@ window.addEventListener('click', function (e) {
 
 function logout() {
     localStorage.removeItem('access_token');
-    window.location.replace('landingpage.html');
+    window.location.replace('index.html');
 }
 
 
