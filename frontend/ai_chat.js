@@ -1,5 +1,4 @@
 
-// SEC-04: Use centralized BASE_API_URL instead of hardcoded URL
 const AI_API_URL = `${BASE_API_URL}/chat/`;
 let isChatOpen = false;
 let historyLoaded = false;

@@ -360,10 +360,6 @@ async function initializeDashboard() {
         
         document.getElementById('service-tbody').innerHTML = '';
         document.getElementById('inv-tbody').innerHTML = '';
-        // document.getElementById('client-grid').innerHTML = '';
-        
-        // loadRealServices();
-        // loadRealInvoices();
         
     } else {
         console.log("Profile incomplete: Running in Demo Mode");

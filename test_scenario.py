@@ -25,9 +25,7 @@ def test_full_scenario(email, password):
         page.fill("#register-form input[type='password']", password)
         page.click("#register-form button[type='submit']")
         
-        # Wait for either success or error toast
         try:
-            # If successful, it switches to login tab after 1.5 seconds
             page.wait_for_selector("#tab-login.active", timeout=5000)
             print(" -> Signup successful, moved to login tab.")
             page.wait_for_timeout(1000)
@@ -48,7 +46,6 @@ def test_full_scenario(email, password):
             page.fill("#upi_id", "scenario@upi")
             page.fill("#account_number", "1234567890")
             page.fill("#ifsc_code", "SBIN0001234")
-            # Optional fields
             page.fill("#gstin", "27ABCDE1234F1Z5")
             page.fill("#pincode", "411001")
             page.fill("#street_address", "123 Scenario Street, Tech Park")
@@ -90,24 +87,19 @@ def test_full_scenario(email, password):
         page.wait_for_selector("#modal-invoice.open", timeout=3000)
         inv_frame = page.wait_for_selector("#modal-invoice iframe").content_frame()
         
-        # Select Client
         inv_frame.wait_for_selector("#client-select option:not([value=''])", state="attached", timeout=5000)
         inv_frame.select_option("#client-select", index=1)
         
-        # Add Service
         inv_frame.click(".add-row-btn")
         inv_frame.wait_for_selector(".service-row select", state="attached", timeout=3000)
         inv_frame.select_option(".service-row select", index=1)
         
-        # Change qty
-        inv_frame.fill(".service-row input[type='number']", "4") # 4 hours
+        inv_frame.fill(".service-row input[type='number']", "4")
         
-        # Save and Send invoice (this creates it in SENT status)
         inv_frame.click("button.btn-primary:has-text('Save & Send')")
         page.wait_for_selector("#modal-invoice", state="hidden", timeout=15000)
         print(" -> Invoice created and sent successfully!")
         
-        # Verify it shows up as Pending
         page.click("button.nav-btn:has-text('Invoices')")
         page.wait_for_selector("#inv-tbody tr", timeout=5000)
         

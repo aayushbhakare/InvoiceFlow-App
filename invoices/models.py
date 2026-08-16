@@ -4,13 +4,16 @@ from django.utils import timezone
 import uuid
 from datetime import timedelta
 from invoices.crypto import decrypt_value, encrypt_value
+
 class Services(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='services', null=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
     rate = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    
     def __str__(self):
         return self.name
+
 class Client(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='clients', null=True)
     name = models.CharField(max_length=255)
@@ -23,8 +26,10 @@ class Client(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     city = models.CharField(max_length=100, blank=True, null=True)
+    
     def __str__(self):
         return f"{self.name} ({self.user.username})"
+
 class Invoice(models.Model):
     status_choices = STATUS_CHOICES = (
         ('DRAFT', 'Draft'),
@@ -48,8 +53,10 @@ class Invoice(models.Model):
     bank_details = models.TextField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
     payment_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    
     def __str__(self):
         return f"Invoice {self.invoice_number} - {self.client_name}"
+    
     def save(self, *args, **kwargs):
         if not self.invoice_number:
             now = timezone.now()
@@ -85,15 +92,18 @@ class Invoice(models.Model):
                     except (ValueError, IndexError):
                         pass
                 self.invoice_number = f"{prefix}{seq:04d}"
+
 class LineItem(models.Model):
     invoice = models.ForeignKey(Invoice, related_name='items', on_delete=models.CASCADE)
     services = models.ForeignKey(Services, on_delete=models.SET_NULL, null=True)
     total_hours = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     service_name = models.CharField(max_length=100, blank=True, null=True)
+    
     def __str__(self):
         name = self.service_name or (self.services.name if self.services else None)
         return f"LineItem for {self.invoice.invoice_number} - {name or '[No Service Attached]'}"
+
 class Profile(models.Model):
     ENTITY_CHOICES = (
         ('INDIVIDUAL', 'Individual / Freelancer'),
@@ -116,16 +126,20 @@ class Profile(models.Model):
     street_address = models.TextField(blank=True, null=True) 
     razorpay_key_id = models.CharField(max_length=255, blank=True, null=True)
     razorpay_key_secret = models.CharField(max_length=500, blank=True, null=True)
+    
     def save(self, *args, **kwargs):
         if self.razorpay_key_secret:
             self.razorpay_key_secret = encrypt_value(self.razorpay_key_secret)
         super().save(*args, **kwargs)
+    
     def get_razorpay_key_secret(self):
         if not self.razorpay_key_secret:
             return self.razorpay_key_secret
         return decrypt_value(self.razorpay_key_secret)
+    
     def __str__(self):
         return f"{self.display_name} ({self.get_entity_type_display()})"
+
 class NotificationLog(models.Model):
     EVENT_TYPES = (
         ('INVOICE_SENT', 'Invoice Sent'),
@@ -147,14 +161,17 @@ class NotificationLog(models.Model):
     error_message = models.TextField(blank=True, null=True)
     recipient_email = models.EmailField(blank=True, null=True)
     metadata = models.JSONField(blank=True, null=True)
+    
     class Meta:
         ordering = ['-timestamp']
         indexes = [
             models.Index(fields=['invoice', 'event_type']),
             models.Index(fields=['invoice', 'timestamp']),
         ]
+    
     def __str__(self):
         return f"{self.invoice.invoice_number} — {self.get_event_type_display()} ({self.delivery_status})"
+
 class Payment(models.Model):
     PAYMENT_METHODS = (
     ('UPI', 'UPI'),
@@ -172,10 +189,13 @@ class Payment(models.Model):
     razorpay_order_id = models.CharField(max_length=100, blank=True, null=True)
     razorpay_payment_id = models.CharField(max_length=100, blank=True, null=True)
     razorpay_signature = models.CharField(max_length=255, blank=True, null=True)
+    
     class Meta:
         ordering = ['-payment_date', '-created_at']
+    
     def __str__(self):
         return f"Payment of ₹{self.amount} for {self.invoice.invoice_number}"
+
 class RecurringInvoice(models.Model):
     FREQUENCY_CHOICES = (
         ('WEEKLY', 'Weekly'),
@@ -192,8 +212,10 @@ class RecurringInvoice(models.Model):
     is_active = models.BooleanField(default=True)
     template_data = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
+    
     def __str__(self):
         return f"Recurring: {self.client.name} ({self.get_frequency_display()})"
+
 class ChatMessage(models.Model):
     ROLE_CHOICES = (('user', 'User'), ('model', 'Model'))
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_history')
@@ -201,12 +223,15 @@ class ChatMessage(models.Model):
     content = models.TextField(blank=True, null=True)
     tool_calls = models.JSONField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
     class Meta:
         ordering = ['created_at']
     @classmethod
+    
     def cleanup_old_messages(cls, user):
         cutoff = timezone.now() - timedelta(hours=16)
         cls.objects.filter(user=user, created_at__lt=cutoff).delete()
+
 class PendingAction(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -222,6 +247,7 @@ class PendingAction(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
+
 class AIAuditLog(models.Model):
     conversation_id = models.CharField(max_length=64, null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
