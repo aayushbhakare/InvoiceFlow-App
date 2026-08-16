@@ -88,13 +88,13 @@
 
         <div class="field">
             <label>Razorpay Key ID</label>
-            <input type="text" id="razorpay_key_id" placeholder="rzp_test_...">
+            <input type="text" id="razorpay_key_id" placeholder="rzp_test_..." autocomplete="off">
             <div class="error-msg" id="err-razorpay_key_id"></div>
         </div>
 
         <div class="field">
             <label>Razorpay Key Secret</label>
-            <input type="password" id="razorpay_key_secret" placeholder="Enter Secret Key">
+            <input type="password" id="razorpay_key_secret" placeholder="Enter Secret Key" autocomplete="new-password">
             <div class="error-msg" id="err-razorpay_key_secret"></div>
         </div>
 
@@ -107,7 +107,7 @@
     </form>
 </div>
 
-<div class="container danger-zone">
+<div class="container danger-zone" id="danger-zone" style="display: none;">
     <h2 class="title" style="color: var(--red-text);">Danger Zone</h2>
     <p class="subtitle">Once you delete your account, there is no going back. Please be certain.</p>
     <button class="btn-danger" onclick="deleteAccount()">Delete My Account</button>

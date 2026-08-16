@@ -89,6 +89,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         window.location.replace('dynamicdashboard.html'); 
                     };
                 }
+                
+                const dangerZone = document.getElementById('danger-zone');
+                if (dangerZone) dangerZone.style.display = 'block';
             } else {
             
                 if (titleEl) titleEl.textContent = "Business Details";
