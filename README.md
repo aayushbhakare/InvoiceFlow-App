@@ -114,6 +114,3 @@ This project uses `pytest` for running automated tests. Make sure your virtual e
 pytest
 ```
 
-## 📄 License
-
-This project is licensed under the MIT License.
