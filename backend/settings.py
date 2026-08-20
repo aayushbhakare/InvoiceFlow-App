@@ -77,11 +77,11 @@ DATABASES = {
         'PORT': env('DB_PORT', default='5432'),
         'CONN_MAX_AGE': 600,
         'CONN_HEALTH_CHECKS': True,
-        'OPTIONS': {
-            'sslmode': 'require',
-        },
     }
 }
+
+if env('DB_HOST', default='localhost') != 'localhost':
+    DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -127,7 +127,12 @@ REST_FRAMEWORK = {
     },
 }
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    "https://invoiceflow-app-nine.vercel.app",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+]
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'

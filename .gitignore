@@ -8,3 +8,4 @@ logs/
 media/
 staticfiles/
 .pytest_cache/
+.vscode/
