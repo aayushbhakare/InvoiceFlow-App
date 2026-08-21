@@ -308,7 +308,7 @@ class ForgotPasswordView(APIView):
         if user:
             PasswordResetToken.objects.filter(user=user, used=False).update(used=True)
             reset_token = PasswordResetToken.objects.create(user=user)
-            frontend_url = settings.PAYMENT_BASE_URL.rstrip('/')
+            frontend_url = request.headers.get('Origin', 'https://invoiceflow-app-nine.vercel.app').rstrip('/')
             reset_link = f"{frontend_url}/reset-password.html?token={reset_token.token}"
             
             subject = "InvoiceFlow - Reset Your Password"
