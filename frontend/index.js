@@ -129,4 +129,48 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    const forgotForm = document.getElementById('forgot-form');
+    if (forgotForm) {
+        forgotForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = forgotForm.querySelector('input[type="email"]').value;
+            const submitBtn = forgotForm.querySelector('.submit-btn');
+
+            submitBtn.textContent = 'Sending...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${BASE_API_URL}/forgot-password/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    toast(data.success || "Reset link sent!");
+                    forgotForm.reset();
+                    
+                    setTimeout(() => {
+                        document.getElementById('tab-login').click();
+                        show('login');
+                        submitBtn.textContent = 'Send Reset Link';
+                        submitBtn.disabled = false;
+                    }, 2000);
+                } else {
+                    toast(data.error || "Failed to send reset link.", true);
+                    submitBtn.textContent = 'Send Reset Link';
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error("Forgot Password Error:", error);
+                toast("Server error. Please try again.", true);
+                submitBtn.textContent = 'Send Reset Link';
+                submitBtn.disabled = false;
+            }
+        });
+    }
 });

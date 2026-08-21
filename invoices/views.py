@@ -8,7 +8,9 @@ from rest_framework import status as http_status
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.models import User
-from .models import Invoice, LineItem, Services, Profile, Client, NotificationLog, Payment, RecurringInvoice
+from .models import Invoice, LineItem, Services, Profile, Client, NotificationLog, Payment, RecurringInvoice, PasswordResetToken
+from django.core.mail import send_mail
+from django.conf import settings
 from .serializers import (
     InvoiceSerializer, LineItemSerializer, ServicesSerializer,
     ProfileSerializer, RegisterSerializer, ClientSerializer,
@@ -293,3 +295,65 @@ def ai_chat_endpoint(request):
         logging.getLogger('invoices').error(f"AI Chat Error for user {request.user.id}: {e}", exc_info=True)
 
         return Response({"error": "Something went wrong. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({"error": "Email is required."}, status=http_status.HTTP_400_BAD_REQUEST)
+        
+        user = User.objects.filter(email=email).first()
+        if user:
+            PasswordResetToken.objects.filter(user=user, used=False).update(used=True)
+            reset_token = PasswordResetToken.objects.create(user=user)
+            frontend_url = settings.PAYMENT_BASE_URL.rstrip('/')
+            reset_link = f"{frontend_url}/reset-password.html?token={reset_token.token}"
+            
+            subject = "InvoiceFlow - Reset Your Password"
+            message = f"Hello,\n\nYou requested to reset your password. Click the link below to set a new password:\n\n{reset_link}\n\nThis link will expire in 30 minutes.\n\nIf you did not request this, please ignore this email."
+            
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                print(f"Error sending email: {e}")
+                pass
+
+        return Response({"success": "If an account with that email exists, we have sent a password reset link."}, status=http_status.HTTP_200_OK)
+
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        token_val = request.data.get('token')
+        new_password = request.data.get('password')
+        
+        if not token_val or not new_password:
+            return Response({"error": "Token and new password are required."}, status=http_status.HTTP_400_BAD_REQUEST)
+        
+        if len(new_password) < 8:
+            return Response({"error": "Password must be at least 8 characters long."}, status=http_status.HTTP_400_BAD_REQUEST)
+
+        try:
+            reset_token = PasswordResetToken.objects.get(token=token_val, used=False)
+        except PasswordResetToken.DoesNotExist:
+            return Response({"error": "Invalid or already used token."}, status=http_status.HTTP_400_BAD_REQUEST)
+            
+        if reset_token.is_expired():
+            return Response({"error": "This password reset link has expired. Please request a new one."}, status=http_status.HTTP_400_BAD_REQUEST)
+            
+        user = reset_token.user
+        user.set_password(new_password)
+        user.save()
+        
+        reset_token.used = True
+        reset_token.save()
+        
+        return Response({"success": "Password reset successfully. You can now log in."}, status=http_status.HTTP_200_OK)

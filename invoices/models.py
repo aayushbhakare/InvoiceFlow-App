@@ -261,3 +261,12 @@ class AIAuditLog(models.Model):
     result = models.JSONField(null=True, blank=True)
     duration_ms = models.IntegerField(default=0)
     timestamp = models.DateTimeField(auto_now_add=True)
+
+class PasswordResetToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_reset_tokens')
+    token = models.UUIDField(default=uuid.uuid4, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    used = models.BooleanField(default=False)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(minutes=30)

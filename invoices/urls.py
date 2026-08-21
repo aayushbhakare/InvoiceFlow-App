@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     InvoiceViewSet, LineItemViewSet, ServiceViewSet, 
     download_invoice_pdf, ClientViewSet, RegisterView, ProfileManageView,RecurringInvoiceViewSet,
-    create_razorpay_order, verify_razorpay_payment, razorpay_webhook, ai_chat_endpoint, DeleteAccountView
+    create_razorpay_order, verify_razorpay_payment, razorpay_webhook, ai_chat_endpoint, DeleteAccountView,
+    ForgotPasswordView, ResetPasswordView
 )
 from invoices import views
 router = DefaultRouter()
@@ -16,6 +17,8 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('profile/', ProfileManageView.as_view(), name='profile'),
     path('delete-account/', DeleteAccountView.as_view(), name='delete-account'),
+    path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
     path('chat/', ai_chat_endpoint, name='ai-chat'),
     path('', include(router.urls)),
     path('invoices/<int:pk>/download/', download_invoice_pdf, name='download-invoice-pdf'),
