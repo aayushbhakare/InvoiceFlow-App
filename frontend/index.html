@@ -467,7 +467,7 @@ body {
             <div class="field">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <label>Password</label>
-                <a href="#" onclick="show('forgot')" style="font-size: 14px; color: var(--teal); text-decoration: none;">Forgot password?</a>
+                <a href="#" onclick="event.preventDefault(); show('forgot')" style="font-size: 14px; color: var(--teal); text-decoration: none;">Forgot password?</a>
             </div>
             <input type="password" placeholder="••••••••" required>
             </div>
@@ -485,7 +485,7 @@ body {
             </div>
             <button type="submit" class="submit-btn">Send Reset Link</button>
             <p class="micro-copy" style="text-align: center; margin-top: 16px;">
-                <a href="#" onclick="show('login')" style="color: var(--black); text-decoration: underline;">Back to Sign In</a>
+                <a href="#" onclick="event.preventDefault(); show('login')" style="color: var(--black); text-decoration: underline;">Back to Sign In</a>
             </p>
         </form>
       </div>
@@ -519,7 +519,11 @@ function show(view) {
   document.querySelectorAll('.form-section').forEach(s => s.classList.remove('visible'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('sec-' + view).classList.add('visible');
-  document.getElementById('tab-' + view).classList.add('active');
+  
+  const tabEl = document.getElementById('tab-' + view);
+  if (tabEl) {
+    tabEl.classList.add('active');
+  }
 }
 </script>
 <div id="toast-el" class="toast"></div>

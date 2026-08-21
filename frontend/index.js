@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (response.ok) {
-                    toast(data.success || "Reset link sent!");
+                    toast(data.success || "Reset link sent to your email!");
                     forgotForm.reset();
                     
                     setTimeout(() => {

@@ -326,7 +326,7 @@ class ForgotPasswordView(APIView):
                 print(f"Error sending email: {e}")
                 pass
 
-        return Response({"success": "If an account with that email exists, we have sent a password reset link."}, status=http_status.HTTP_200_OK)
+        return Response({"success": "Reset link sent to your email!"}, status=http_status.HTTP_200_OK)
 
 class ResetPasswordView(APIView):
     permission_classes = [AllowAny]
