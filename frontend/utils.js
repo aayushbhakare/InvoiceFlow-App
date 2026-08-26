@@ -1,5 +1,5 @@
-// Set to your EC2 public IP/domain in production, or /api if backend and frontend are hosted together
-var BASE_API_URL = window.BASE_API_URL || '/api';
+// Pointing to the new secure AWS EC2 backend
+var BASE_API_URL = window.BASE_API_URL || 'https://13-60-98-116.nip.io/api';
 
 
 function getToken() {
