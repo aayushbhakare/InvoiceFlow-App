@@ -1,4 +1,5 @@
-var BASE_API_URL = window.BASE_API_URL || 'https://invoiceflow-backend-fsuv.onrender.com/api';
+// Set to your EC2 public IP/domain in production, or /api if backend and frontend are hosted together
+var BASE_API_URL = window.BASE_API_URL || '/api';
 
 
 function getToken() {

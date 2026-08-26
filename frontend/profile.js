@@ -66,6 +66,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     secretInput.value = "••••••••••";
                 }
             }
+            if (data.swiftpay_key_id) document.getElementById('swiftpay_key_id').value = data.swiftpay_key_id;
+            if (data.has_swiftpay_secret) {
+                const swiftSecretInput = document.getElementById('swiftpay_key_secret');
+                if (swiftSecretInput) {
+                    swiftSecretInput.value = "••••••••••";
+                }
+            }
+            if (data.preferred_gateway) {
+                document.getElementById('preferred_gateway').value = data.preferred_gateway;
+                document.getElementById('preferred_gateway').dispatchEvent(new Event('change'));
+            }
 
 
             const isComplete = data.account_number && data.ifsc_code;
@@ -130,14 +141,27 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
         street_address: document.getElementById('street_address').value || null,
         city: document.getElementById('city').value || null,
         state: document.getElementById('state').value || null,
-        razorpay_key_id: document.getElementById('razorpay_key_id') ? document.getElementById('razorpay_key_id').value : null
+        razorpay_key_id: document.getElementById('razorpay_key_id') ? document.getElementById('razorpay_key_id').value : null,
+        swiftpay_key_id: document.getElementById('swiftpay_key_id') ? document.getElementById('swiftpay_key_id').value : null,
+        preferred_gateway: document.getElementById('preferred_gateway') ? document.getElementById('preferred_gateway').value : 'RAZORPAY'
     };
 
     const secretInput = document.getElementById('razorpay_key_secret');
     if (secretInput) {
         const val = secretInput.value.trim();
-        if (val !== '' && val !== '••••••••••') {
+        if (val === '') {
+            payload.razorpay_key_secret = '';
+        } else if (val !== '••••••••••') {
             payload.razorpay_key_secret = val;
+        }
+    }
+    const swiftSecretInput = document.getElementById('swiftpay_key_secret');
+    if (swiftSecretInput) {
+        const val = swiftSecretInput.value.trim();
+        if (val === '') {
+            payload.swiftpay_key_secret = '';
+        } else if (val !== '••••••••••') {
+            payload.swiftpay_key_secret = val;
         }
     }
 
@@ -182,6 +206,21 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
         submitBtn.textContent = 'Save & Go to Dashboard';
     }
 });
+
+const gatewaySelect = document.getElementById('preferred_gateway');
+if (gatewaySelect) {
+    gatewaySelect.addEventListener('change', () => {
+        const rzp = document.getElementById('razorpay_fields');
+        const swp = document.getElementById('swiftpay_fields');
+        if (gatewaySelect.value === 'RAZORPAY') {
+            if(rzp) rzp.style.display = 'block';
+            if(swp) swp.style.display = 'none';
+        } else {
+            if(rzp) rzp.style.display = 'none';
+            if(swp) swp.style.display = 'block';
+        }
+    });
+}
 
 async function deleteAccount() {
     const confirmDelete = confirm("WARNING: This will permanently delete your account, clients, services, and all invoices. This action cannot be undone.\n\nAre you absolutely sure you want to proceed?");

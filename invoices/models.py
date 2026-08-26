@@ -53,6 +53,7 @@ class Invoice(models.Model):
     bank_details = models.TextField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
     payment_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    swiftpay_payment_id = models.CharField(max_length=100, blank=True, null=True)
     
     def __str__(self):
         return f"Invoice {self.invoice_number} - {self.client_name}"
@@ -126,16 +127,26 @@ class Profile(models.Model):
     street_address = models.TextField(blank=True, null=True) 
     razorpay_key_id = models.CharField(max_length=255, blank=True, null=True)
     razorpay_key_secret = models.CharField(max_length=500, blank=True, null=True)
+    swiftpay_key_id = models.CharField(max_length=255, blank=True, null=True)
+    swiftpay_key_secret = models.CharField(max_length=500, blank=True, null=True)
+    preferred_gateway = models.CharField(max_length=20, choices=(('RAZORPAY', 'Razorpay'), ('SWIFTPAY', 'SwiftPay')), default='RAZORPAY')
     
     def save(self, *args, **kwargs):
-        if self.razorpay_key_secret:
+        if self.razorpay_key_secret and not self.razorpay_key_secret.startswith('gAAAA'):
             self.razorpay_key_secret = encrypt_value(self.razorpay_key_secret)
+        if self.swiftpay_key_secret and not self.swiftpay_key_secret.startswith('gAAAA'):
+            self.swiftpay_key_secret = encrypt_value(self.swiftpay_key_secret)
         super().save(*args, **kwargs)
     
     def get_razorpay_key_secret(self):
         if not self.razorpay_key_secret:
             return self.razorpay_key_secret
         return decrypt_value(self.razorpay_key_secret)
+        
+    def get_swiftpay_key_secret(self):
+        if not self.swiftpay_key_secret:
+            return self.swiftpay_key_secret
+        return decrypt_value(self.swiftpay_key_secret)
     
     def __str__(self):
         return f"{self.display_name} ({self.get_entity_type_display()})"
@@ -178,6 +189,7 @@ class Payment(models.Model):
     ('NET_BANKING', 'Net Banking'),
     ('NEFT', 'NEFT/RTGS/IMPS'),
     ('RAZORPAY', 'Razorpay'),
+    ('SWIFTPAY', 'SwiftPay'),
    )
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -189,6 +201,7 @@ class Payment(models.Model):
     razorpay_order_id = models.CharField(max_length=100, blank=True, null=True)
     razorpay_payment_id = models.CharField(max_length=100, blank=True, null=True)
     razorpay_signature = models.CharField(max_length=255, blank=True, null=True)
+    swiftpay_payment_id = models.CharField(max_length=100, blank=True, null=True)
     
     class Meta:
         ordering = ['-payment_date', '-created_at']

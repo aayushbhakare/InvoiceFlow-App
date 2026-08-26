@@ -257,14 +257,17 @@ class RegisterSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     is_complete = serializers.SerializerMethodField()
     has_razorpay_secret = serializers.SerializerMethodField()
+    has_swiftpay_secret = serializers.SerializerMethodField()
     email=serializers.ReadOnlyField(source='user.email')
     
     class Meta:
         model = Profile
         fields = ['display_name', 'phone_number', 'upi_id', 'account_number', 'email', 'ifsc_code', 'gstin', 'is_complete',
-          'street_address', 'city', 'state', 'pincode', 'razorpay_key_id', 'razorpay_key_secret', 'has_razorpay_secret']
+          'street_address', 'city', 'state', 'pincode', 'razorpay_key_id', 'razorpay_key_secret', 'has_razorpay_secret',
+          'swiftpay_key_id', 'swiftpay_key_secret', 'has_swiftpay_secret', 'preferred_gateway']
         extra_kwargs = {
             'razorpay_key_secret': {'write_only': True},
+            'swiftpay_key_secret': {'write_only': True},
         }
     
     def get_is_complete(self, obj):
@@ -273,6 +276,9 @@ class ProfileSerializer(serializers.ModelSerializer):
     
     def get_has_razorpay_secret(self, obj):
         return bool(obj.razorpay_key_secret)
+        
+    def get_has_swiftpay_secret(self, obj):
+        return bool(obj.swiftpay_key_secret)
     
     def validate_ifsc_code(self, value):
         value = value.upper()

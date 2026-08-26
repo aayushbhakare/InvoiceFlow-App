@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     InvoiceViewSet, LineItemViewSet, ServiceViewSet, 
     download_invoice_pdf, ClientViewSet, RegisterView, ProfileManageView,RecurringInvoiceViewSet,
-    create_razorpay_order, verify_razorpay_payment, razorpay_webhook, ai_chat_endpoint, DeleteAccountView,
+    create_payment_order, verify_razorpay_payment, razorpay_webhook, swiftpay_webhook, ai_chat_endpoint, DeleteAccountView,
     ForgotPasswordView, ResetPasswordView
 )
 from invoices import views
@@ -23,7 +23,8 @@ urlpatterns = [
     path('', include(router.urls)),
     path('invoices/<int:pk>/download/', download_invoice_pdf, name='download-invoice-pdf'),
     path('', views.landing_page, name='landing-page'),
-    path('invoices/<uuid:payment_token>/create-order/', create_razorpay_order, name='create-razorpay-order'),
+    path('invoices/<uuid:payment_token>/create-order/', create_payment_order, name='create-payment-order'),
     path('invoices/<uuid:payment_token>/verify-payment/', verify_razorpay_payment, name='verify-razorpay-payment'),
     path('webhooks/razorpay/', razorpay_webhook, name='razorpay-webhook'),
+    path('webhooks/swiftpay/', swiftpay_webhook, name='swiftpay-webhook'),
 ]

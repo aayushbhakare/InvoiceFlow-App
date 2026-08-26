@@ -32,6 +32,11 @@
         }
 
         function startPayment() {
+            if (orderData.gateway === 'SWIFTPAY') {
+                document.getElementById('status').textContent = 'Redirecting to SwiftPay...';
+                window.location.href = orderData.checkout_url;
+                return;
+            }
             const options = {
                 key: orderData.razorpay_key_id,
                 amount: orderData.amount,

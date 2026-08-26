@@ -24,6 +24,8 @@ from .ai_agent import process_chat_message
 from rest_framework import status
 from django.conf import settings
 import datetime
+from decimal import Decimal
+from django.db import transaction
 class ServiceViewSet(viewsets.ModelViewSet):
     serializer_class = ServicesSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -35,7 +37,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     serializer_class = InvoiceSerializer
     permission_classes = [IsAuthenticated]
     def get_queryset(self):
-        return Invoice.objects.filter(user=self.request.user).order_by('-issue_date')
+        return Invoice.objects.filter(user=self.request.user).order_by('-issue_date').select_related('client').prefetch_related('items')
     @action(detail=True, methods=['post'])
     def send(self, request, pk=None):
         invoice = self.get_object()
@@ -150,41 +152,132 @@ class RecurringInvoiceViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def create_razorpay_order(request, payment_token):
+def create_payment_order(request, payment_token):
     invoice = get_object_or_404(Invoice, payment_token=payment_token)
     profile = getattr(invoice.user, 'profile', None)
-    razorpay_secret = profile.get_razorpay_key_secret() if profile else None
-    if not profile or not profile.razorpay_key_id or not razorpay_secret:
-        return Response(
-            {'error': 'Razorpay keys not configured. Please update your profile.'},
-            status=http_status.HTTP_400_BAD_REQUEST
-        )
+    if not profile:
+        return Response({'error': 'Profile not configured.'}, status=http_status.HTTP_400_BAD_REQUEST)
     if invoice.status == 'PAID':
         return Response({'error': 'Invoice is already paid.'}, status=http_status.HTTP_400_BAD_REQUEST)
-    client = razorpay.Client(auth=(profile.razorpay_key_id, razorpay_secret))
-    amount_in_paise = int(float(invoice.total_amount) * 100)
-    order_data = {
-        'amount': amount_in_paise,
-        'currency': 'INR',
-        'receipt': invoice.invoice_number,
-        'notes': {
-            'invoice_id': str(invoice.id),
-            'client_name': invoice.client_name,
-        }
-    }
+
+    if profile.preferred_gateway == 'RAZORPAY':
+        razorpay_secret = profile.get_razorpay_key_secret()
+        if not profile.razorpay_key_id or not razorpay_secret:
+            return Response({'error': 'Razorpay keys not configured.'}, status=http_status.HTTP_400_BAD_REQUEST)
+        client = razorpay.Client(auth=(profile.razorpay_key_id, razorpay_secret))
+        amount_in_paise = int(Decimal(str(invoice.total_amount)) * 100)
+        try:
+            order = client.order.create(data={
+                'amount': amount_in_paise, 'currency': 'INR', 'receipt': invoice.invoice_number,
+                'notes': {'invoice_id': str(invoice.id), 'invoice_number': invoice.invoice_number},
+            })
+            return Response({
+                'gateway': 'RAZORPAY', 'order_id': order['id'], 'amount': amount_in_paise, 'currency': 'INR',
+                'razorpay_key_id': profile.razorpay_key_id, 'invoice_number': invoice.invoice_number,
+                'client_name': invoice.client_name, 'client_email': invoice.client.email if invoice.client else ''
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    elif profile.preferred_gateway == 'SWIFTPAY':
+        swiftpay_secret = profile.get_swiftpay_key_secret()
+        if not profile.swiftpay_key_id or not swiftpay_secret:
+            return Response({'error': 'SwiftPay keys not configured.'}, status=http_status.HTTP_400_BAD_REQUEST)
+        import urllib.request, urllib.error, json, base64
+        auth_str = f"{profile.swiftpay_key_id}:{swiftpay_secret}"
+        b64_auth = base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
+
+        swiftpay_api_url = getattr(settings, 'SWIFTPAY_API_URL', 'http://127.0.0.1:8001/api/v1/payments/')
+        webhook_url = f"{request.scheme}://{request.get_host()}/api/webhooks/swiftpay/"
+
+        req = urllib.request.Request(
+            swiftpay_api_url,
+            data=json.dumps({
+                'amount': str(invoice.total_amount), 
+                'currency': 'INR',
+                'webhook_url': webhook_url
+            }).encode('utf-8'),
+            headers={'Authorization': f'Basic {b64_auth}', 'Content-Type': 'application/json'}
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as response:
+                data = json.loads(response.read().decode())
+                
+                payment_id = data.get('id')
+                if not payment_id:
+                    return Response({'error': 'SwiftPay returned no payment ID'}, status=http_status.HTTP_502_BAD_GATEWAY)
+                
+                checkout_url = data.get('checkout_url')
+                if not checkout_url:
+                    frontend_url = getattr(settings, 'FRONTEND_BASE_URL', 'http://127.0.0.1:5500').rstrip('/')
+                    checkout_url = f"{frontend_url}/checkout.html?payment_id={payment_id}"
+                
+                invoice.swiftpay_payment_id = payment_id
+                invoice.save(update_fields=['swiftpay_payment_id'])
+                return Response({
+                    'gateway': 'SWIFTPAY',
+                    'checkout_url': checkout_url,
+                    'amount': int(Decimal(str(invoice.total_amount)) * 100),
+                    'currency': 'INR',
+                    'invoice_number': invoice.invoice_number,
+                    'client_name': invoice.client_name,
+                    'client_email': invoice.client.email if invoice.client else ''
+                })
+        except urllib.error.HTTPError as e:
+            try:
+                err_data = json.loads(e.read().decode())
+            except (ValueError, OSError):
+                err_data = {}
+            return Response({'error': err_data.get('error', str(e))}, status=e.code)
+        except Exception as e:
+            return Response({'error': f"SwiftPay Error: {str(e)}"}, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return Response(
+        {'error': f'Unsupported payment gateway: {profile.preferred_gateway or "not set"}'},
+        status=http_status.HTTP_400_BAD_REQUEST,
+    )
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def swiftpay_webhook(request):
     try:
-        order = client.order.create(data=order_data)
-        return Response({
-            'order_id': order['id'],
-            'amount': amount_in_paise,
-            'currency': 'INR',
-            'razorpay_key_id': profile.razorpay_key_id,
-            'invoice_number': invoice.invoice_number,
-            'client_name': invoice.client_name,
-            'client_email': invoice.client.email if invoice.client else '',
-        })
+        payload = request.body
+        webhook_secret = getattr(settings, 'SWIFTPAY_WEBHOOK_SECRET', None)
+        if not webhook_secret:
+            return Response({'error': 'Webhook secret not configured'}, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+        received_signature = request.headers.get('X-SwiftPay-Signature', '')
+        expected_signature = hmac.new(
+            webhook_secret.encode('utf-8'),
+            payload,
+            hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(expected_signature, received_signature):
+            return Response({'error': 'Invalid signature'}, status=http_status.HTTP_400_BAD_REQUEST)
+
+        data = json.loads(payload)
+        if data.get('event') == 'payment.captured':
+            payment_id = data.get('payment_id')
+            if not payment_id:
+                return Response({'error': 'Missing payment_id'}, status=http_status.HTTP_400_BAD_REQUEST)
+            with transaction.atomic():
+                invoice = Invoice.objects.select_for_update().filter(swiftpay_payment_id=payment_id).first()
+                if invoice and invoice.status != 'PAID':
+                    webhook_amount = float(data.get('amount', 0))
+                    if webhook_amount != float(invoice.total_amount):
+                        return Response({'error': 'Amount mismatch'}, status=http_status.HTTP_400_BAD_REQUEST)
+                        
+                    invoice.status = 'PAID'
+                    invoice.save(update_fields=['status'])
+                    
+                    from .models import Payment, NotificationLog
+                    Payment.objects.create(invoice=invoice, amount=webhook_amount, payment_method='SWIFTPAY', swiftpay_payment_id=payment_id)
+                    NotificationLog.objects.create(invoice=invoice, event_type='PAYMENT_RECEIVED', delivery_status='SUCCESS')
+        return Response({'status': 'ok'})
+    except json.JSONDecodeError:
+        return Response({'error': 'Invalid JSON'}, status=http_status.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        return Response({'error': str(e)}, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': str(e)}, status=http_status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])

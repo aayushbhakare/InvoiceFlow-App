@@ -18,7 +18,7 @@ def send_whatsapp_reminder(invoice, event_type):
             to_number = f"+91{to_number}" 
         to_number = f"whatsapp:{to_number}"
         base_url = getattr(settings, 'PAYMENT_BASE_URL', 'http://127.0.0.1:5500')
-        pay_link = f"{base_url}/frontend/pay.html?token={invoice.payment_token}"
+        pay_link = f"{base_url}/pay.html?token={invoice.payment_token}"
         if event_type == 'REMINDER_BEFORE_DUE':
             greeting = f"Friendly reminder: Your invoice {invoice.invoice_number} is due soon on {invoice.due_date}."
         elif event_type == 'REMINDER_ON_DUE':
