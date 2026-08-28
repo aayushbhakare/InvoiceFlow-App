@@ -246,6 +246,12 @@ class RegisterSerializer(serializers.ModelSerializer):
             'email': {'required': True}
         }
     
+    def validate_email(self, value):
+        from django.contrib.auth.models import User
+        if User.objects.filter(email=value).exists() or User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("An account with this email already exists. Please log in instead.")
+        return value
+
     def create(self, validated_data):
         user = User.objects.create_user(
             username=validated_data['email'], 

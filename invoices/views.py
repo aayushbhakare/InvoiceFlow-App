@@ -376,6 +376,17 @@ def razorpay_webhook(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def ai_chat_endpoint(request):
+    from .throttles import AIRateThrottle
+    throttle = AIRateThrottle()
+    if not throttle.allow_request(request, None):
+        wait_time = int(throttle.wait() or 60)
+        minutes = wait_time // 60
+        time_str = f"{minutes} minutes" if minutes > 0 else f"{wait_time} seconds"
+        return Response(
+            {"error": f"The limit is over. Please try again after a few minutes (approx {time_str})."}, 
+            status=status.HTTP_429_TOO_MANY_REQUESTS
+        )
+
     user_message = request.data.get('message', '')
     pending_action_id = request.data.get('pending_action_id')
     try:

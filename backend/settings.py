@@ -124,6 +124,7 @@ REST_FRAMEWORK = {
         'anon': '100/minute',
         'user': '1000/minute',
         'login': '5/minute',
+        'ai': '20/minute',
     },
 }
 
